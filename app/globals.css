@@ -1,0 +1,620 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ==========================================================
+   SMART PARK - SIMPLE PINK THEME STYLES
+   These are plain CSS classes so the code is easy to read.
+   ========================================================== */
+
+/* Colours used across the app */
+:root {
+  --sp-soft-pink: #fce7f3; /* available slot */
+  --sp-light-pink: #f9a8d4;
+  --sp-pink: #ec4899; /* selected slot / buttons */
+  --sp-dark-pink: #db2777; /* active parking / button hover */
+  --sp-bg: #fff7fb; /* page background */
+  --sp-occupied: #4b5563; /* occupied slot */
+  --sp-text: #1f2937; /* main text */
+}
+
+/* Full page background */
+.sp-page {
+  min-height: 100vh;
+  background-color: var(--sp-bg);
+  color: var(--sp-text);
+  /* Simple, easy-to-read body font */
+  font-family: var(--font-nunito), system-ui, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+/* Rounded, bold, friendly display font for logo + big headings */
+.sp-brand,
+.sp-title,
+.sp-location-slot,
+.sp-amount,
+.sp-stat-number {
+  font-family: var(--font-fredoka), system-ui, sans-serif;
+}
+
+/* White card that holds each screen */
+.sp-card {
+  background-color: #ffffff;
+  border: 1px solid var(--sp-light-pink);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 4px 20px rgba(219, 39, 119, 0.08);
+}
+
+/* Brand name at the top */
+.sp-brand {
+  color: var(--sp-dark-pink);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0 0 4px 0;
+}
+
+.sp-subtitle {
+  color: #6b7280;
+  font-size: 13px;
+  margin: 0 0 16px 0;
+}
+
+.sp-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin: 8px 0 6px 0;
+}
+
+.sp-text {
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+
+/* Pink buttons */
+.sp-btn {
+  display: block;
+  width: 100%;
+  background-color: var(--sp-pink);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.sp-btn:hover {
+  background-color: var(--sp-dark-pink);
+}
+
+.sp-btn:disabled {
+  background-color: #f3c6df;
+  cursor: not-allowed;
+}
+
+/* A lighter secondary button */
+.sp-btn-light {
+  background-color: #ffffff;
+  color: var(--sp-dark-pink);
+  border: 1px solid var(--sp-pink);
+}
+
+.sp-btn-light:hover {
+  background-color: var(--sp-soft-pink);
+}
+
+/* Statistics on the home page */
+.sp-stats {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.sp-stat {
+  flex: 1;
+  background-color: var(--sp-soft-pink);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.sp-stat-number {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--sp-dark-pink);
+}
+
+.sp-stat-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Live status box */
+.sp-status {
+  background-color: var(--sp-soft-pink);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* List of choices (lot / floor selection) */
+.sp-option {
+  width: 100%;
+  text-align: left;
+  background-color: #ffffff;
+  border: 1px solid var(--sp-light-pink);
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sp-text);
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.sp-option:hover {
+  background-color: var(--sp-soft-pink);
+}
+
+/* ---------- Visual parking map ---------- */
+.sp-map {
+  border: 2px dashed var(--sp-light-pink);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 14px 0;
+  background-color: #fffafd;
+}
+
+.sp-map-label {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #6b7280;
+  margin: 6px 0;
+}
+
+.sp-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0;
+}
+
+.sp-driveway {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #9ca3af;
+  background: repeating-linear-gradient(
+    90deg,
+    #e5e7eb,
+    #e5e7eb 10px,
+    #fffafd 10px,
+    #fffafd 20px
+  );
+  border-radius: 6px;
+  padding: 6px 0;
+  margin: 8px 0;
+}
+
+/* One parking slot box */
+.sp-slot {
+  width: 78px;
+  height: 60px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.sp-slot.available {
+  background-color: var(--sp-soft-pink);
+  color: var(--sp-text);
+}
+
+.sp-slot.occupied {
+  background-color: var(--sp-occupied);
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.sp-slot.selected {
+  background-color: var(--sp-pink);
+  color: #ffffff;
+}
+
+/* The user's active parking spot - strong hot pink */
+.sp-slot.active {
+  background-color: var(--sp-dark-pink);
+  color: #ffffff;
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.35);
+}
+
+/* Small colour legend under the map */
+.sp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 10px;
+}
+
+.sp-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Text input for phone number and OTP */
+.sp-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sp-prefix {
+  background-color: var(--sp-soft-pink);
+  border-radius: 8px;
+  padding: 12px;
+  font-weight: 700;
+}
+
+.sp-input {
+  flex: 1;
+  border: 1px solid var(--sp-light-pink);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 16px;
+  width: 100%;
+}
+
+.sp-input:focus {
+  outline: 2px solid var(--sp-pink);
+}
+
+/* Rows used on ticket / bill pages */
+.sp-detail {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.sp-detail-label {
+  color: #6b7280;
+}
+
+.sp-detail-value {
+  font-weight: 600;
+}
+
+/* Highlighted location box (where to park) */
+.sp-location {
+  background-color: var(--sp-soft-pink);
+  border: 1px solid var(--sp-pink);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 14px 0;
+  text-align: center;
+}
+
+.sp-location-slot {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--sp-dark-pink);
+}
+
+/* Big amount on bill / success */
+.sp-amount {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--sp-dark-pink);
+  text-align: center;
+  margin: 8px 0;
+}
+
+.sp-success-tick {
+  font-size: 44px;
+  text-align: center;
+  color: var(--sp-dark-pink);
+}
+
+.sp-badge {
+  display: inline-block;
+  background-color: var(--sp-dark-pink);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sp-center {
+  text-align: center;
+}
+
+.sp-arrow {
+  text-align: center;
+  color: var(--sp-dark-pink);
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+/* ---------- QR SCANNER ---------- */
+/* The dark camera preview area */
+.sp-scanner {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  background: radial-gradient(circle at 50% 40%, #1f2937, #0b1220);
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The square scanning frame with pink corners */
+.sp-scan-frame {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 10px;
+}
+
+.sp-scan-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--sp-pink);
+}
+.sp-scan-corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 8px; }
+.sp-scan-corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 8px; }
+.sp-scan-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
+.sp-scan-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
+
+/* The animated pink line that moves up and down */
+.sp-scan-line {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 3px;
+  background-color: var(--sp-pink);
+  box-shadow: 0 0 12px 2px rgba(236, 72, 153, 0.8);
+  border-radius: 3px;
+  animation: sp-scan 2s ease-in-out infinite;
+}
+
+@keyframes sp-scan {
+  0% { top: 6px; }
+  50% { top: 150px; }
+  100% { top: 6px; }
+}
+
+/* Little hint text under the camera */
+.sp-scan-hint {
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+  margin: 0 0 8px 0;
+}
+
+/* Green "verified" confirmation message */
+.sp-verified {
+  text-align: center;
+  background-color: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #047857;
+  border-radius: 10px;
+  padding: 14px;
+  font-weight: 700;
+  font-size: 16px;
+  margin: 14px 0;
+}
+
+/* Smart Park functionality additions — visual style kept consistent with the v0 design */
+.sp-timer { font-family: var(--font-fredoka), system-ui, sans-serif; font-size: 42px; font-weight: 800; color: var(--sp-dark-pink); text-align: center; margin: 12px 0 0; }
+.sp-error { margin-top: 12px; padding: 10px 12px; border: 1px solid #f9a8d4; background: #fff1f7; color: #be185d; border-radius: 8px; font-size: 13px; }
+.sp-toggle { display: inline-block; margin: 12px 0; border: 0; background: transparent; color: var(--sp-dark-pink); text-decoration: underline; cursor: pointer; font-size: 13px; padding: 0; }
+.sp-breakdown { border-left: 2px solid var(--sp-light-pink); padding-left: 12px; margin: 4px 0 12px; color: #6b7280; font-size: 12px; }
+.sp-breakdown div { display: flex; justify-content: space-between; padding: 4px 0; gap: 12px; }
+.sp-pay-card { border: 1px solid var(--sp-light-pink); border-radius: 12px; padding: 14px; margin: 14px 0; display: grid; gap: 10px; }
+.sp-pay-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sp-qr-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 14px; }
+.sp-qr-wrap { border: 1px solid var(--sp-light-pink); border-radius: 14px; padding: 10px; }
+.sp-home-note { background: var(--sp-soft-pink); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #6b7280; margin: 12px 0; }
