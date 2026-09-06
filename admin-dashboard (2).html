@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161A1E; --ink-soft:#2B323B; --paper:#EDEAE2; --paper-2:#e4e0d3; --free:#2F6F4E; --taken:#B5402C;
+    --route:#3D6B8C; --line:#C7C2B4; --muted:#555049; --shadow:rgba(22,26,30,.18);
+  }
+  html[data-theme="dark"]{
+    --ink:#EDEAE2; --ink-soft:#c9c5b8; --paper:#1B1F24; --paper-2:#14171b; --free:#5fbb8c; --taken:#e07a5f;
+    --route:#7fb0d6; --line:#3a3f46; --muted:#a9a49a; --shadow:rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Space Grotesk', system-ui, sans-serif; color:var(--ink);
+    background:radial-gradient(circle at 20% 0%, var(--paper-2), var(--paper) 75%); padding:24px 16px 60px; transition:background .3s;}
+  .wrap{max-width:960px; margin:0 auto; background:var(--paper); border:1px solid var(--ink); box-shadow:0 16px 34px var(--shadow); transition:max-width .25s, background .3s, color .3s;}
+  .wrap.force-mobile{max-width:420px;}
+
+  .toolbar{max-width:960px; margin:0 auto 12px; display:flex; justify-content:flex-end; gap:8px;}
+  .icon-btn{width:36px; height:36px; border:1px solid var(--ink); background:var(--paper); color:var(--ink); cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; transition:.15s;}
+  .icon-btn:hover{background:var(--line);}
+  .device-toggle{display:flex; border:1px solid var(--ink); overflow:hidden;}
+  .device-toggle button{padding:0 10px; height:36px; border:none; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12px; cursor:pointer; border-right:1px solid var(--ink);}
+  .device-toggle button:last-child{border-right:none;}
+  .device-toggle button.on{background:var(--ink); color:var(--paper);}
+
+  header{padding:20px 24px; border-bottom:1px solid var(--ink); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand .mark{width:30px; height:30px; background:linear-gradient(135deg, var(--ink), var(--ink-soft));
+    display:flex; align-items:center; justify-content:center; color:var(--paper); font-size:14px; font-weight:700;}
+  header h1{font-size:17px; margin:0; font-weight:700;}
+  header .meta{font-size:11px; color:var(--muted);}
+  .live-dot{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--free); font-weight:600;}
+  .live-dot i{width:8px; height:8px; border-radius:50%; background:var(--free); animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.35;}}
+
+  .lot-switch{display:flex; gap:8px; padding:16px 24px; border-bottom:1px solid var(--ink); flex-wrap:wrap;}
+  .lot-switch button{padding:8px 16px; border:1px solid var(--ink); background:var(--paper); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:.15s; color:var(--ink);}
+  .lot-switch button.on{background:var(--ink); color:var(--paper);}
+  .lot-switch button:hover:not(.on){background:var(--line);}
+  .lot-switch .id{font-weight:400; opacity:.6; font-size:11px; margin-left:4px;}
+
+  .top-grid{display:grid; grid-template-columns:1.2fr 1fr; gap:0; border-bottom:1px solid var(--ink);}
+  .wrap.force-mobile .top-grid{grid-template-columns:1fr;}
+  @media (max-width:700px){ .top-grid{grid-template-columns:1fr;} }
+
+  .status-panel{padding:24px; border-right:1px solid var(--ink); display:flex; flex-direction:column; gap:16px;}
+  .wrap.force-mobile .status-panel{border-right:none; border-bottom:1px solid var(--ink);}
+  @media (max-width:700px){ .status-panel{border-right:none; border-bottom:1px solid var(--ink);} }
+  .status-row{display:flex; gap:16px;}
+  .status-card{flex:1; border:1px solid var(--ink); padding:16px;}
+  .status-card .label{font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .status-card .value{font-size:32px; font-weight:700; font-variant-numeric:tabular-nums; transition:color .2s;}
+  .status-card.free .value{color:var(--free);}
+  .status-card.taken .value{color:var(--taken);}
+  .occ-bar-track{height:10px; background:var(--line); width:100%; margin-top:4px;}
+  .occ-bar-fill{height:100%; background:linear-gradient(90deg, var(--route), #5c8fb0); width:0%; transition:width .4s ease;}
+
+  .controls{display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;}
+  .btn{padding:9px 14px; font-family:inherit; font-size:12px; font-weight:600; border:1px solid var(--ink); background:transparent; cursor:pointer; color:var(--ink); transition:.15s;}
+  .btn.primary{background:linear-gradient(135deg, var(--ink), var(--ink-soft)); color:var(--paper); box-shadow:0 3px 8px var(--shadow);}
+  .btn:hover{transform:translateY(-1px);}
+  .btn.on{background:var(--free); border-color:var(--free); color:var(--paper);}
+
+  .gauge-panel{padding:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;}
+  .gauge{
+    width:180px; height:180px; border-radius:50%;
+    background: conic-gradient(var(--route) calc(var(--pct) * 1%), var(--line) 0);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; box-shadow:0 6px 18px var(--shadow);
+  }
+  .gauge::before{ content:""; position:absolute; width:140px; height:140px; border-radius:50%; background:var(--paper); }
+  .gauge .pct{position:relative; font-size:30px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .gauge .lbl{position:relative; font-size:11px; color:var(--muted); margin-top:-6px;}
+  .gauge-caption{font-size:12px; color:var(--muted); text-align:center;}
+
+  .slots-section{padding:24px;}
+  .slots-section h2{font-size:14px; margin:0 0 4px;}
+  .slots-section .hint{font-size:12px; color:var(--muted); margin:0 0 16px;}
+  .floor-tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .floor-tabs button{padding:6px 14px; border:1px solid var(--ink); background:var(--paper); font-family:inherit; font-size:13px; cursor:pointer; transition:.15s; color:var(--ink);}
+  .floor-tabs button.on{background:var(--ink); color:var(--paper);}
+  .floor-map{margin-bottom:2px;}
+  .slot-grid{display:grid; grid-template-columns:repeat(6, 1fr); gap:8px;}
+  .wrap.force-mobile .slot-grid{grid-template-columns:repeat(4,1fr);}
+  @media (max-width:520px){ .slot-grid{grid-template-columns:repeat(4,1fr);} }
+  .gate-label{text-align:center; font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--route);}
+  .gate-label.top{margin:0 0 10px;}
+  .gate-label.bottom{margin:10px 0 0;}
+  .driveway{position:relative; height:34px; margin:12px 0; display:flex; align-items:center; justify-content:center;
+    background-image:repeating-linear-gradient(to right, var(--line) 0 20px, transparent 20px 40px);
+    background-position:center; background-repeat:repeat-x; background-size:100% 8px;}
+  .driveway span{background:var(--paper); padding:0 12px; font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--muted);}
+  .slot{aspect-ratio:1; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--muted); cursor:pointer; user-select:none; transition:.15s;}
+  .slot.free{border-color:var(--free); color:var(--free);}
+  .slot.free:hover{background:color-mix(in srgb, var(--free) 12%, transparent);}
+  .slot.taken{border-color:var(--taken); color:var(--taken); background:repeating-linear-gradient(45deg,transparent 0 4px,color-mix(in srgb, var(--taken) 15%, transparent) 4px 8px);}
+  .legend{display:flex; gap:16px; font-size:12px; color:var(--muted); margin-top:14px;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend i{width:10px; height:10px; display:inline-block;}
+  .lf{background:var(--free);} .lt{background:var(--taken);}
+  .note{font-size:11px; color:var(--muted); margin-top:16px; border-top:1px dashed var(--line); padding-top:12px;}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="device-toggle">
+    <button id="btnMobile" onclick="setDevice('mobile')">📱 Mobile</button>
+    <button id="btnDesktop" class="on" onclick="setDevice('desktop')">🖥 Desktop</button>
+  </div>
+  <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+</div>
+
+<div class="wrap" id="wrapFrame">
+  <header>
+    <div class="brand">
+      <div class="mark">SP</div>
+      <div>
+        <h1 id="lotHeading">—</h1>
+        <div class="meta" id="lotMeta">—</div>
+      </div>
+    </div>
+    <span class="live-dot"><i></i> Live</span>
+  </header>
+
+  <div class="lot-switch" id="lotSwitch"></div>
+
+  <div class="top-grid">
+    <div class="status-panel">
+      <div class="status-row">
+        <div class="status-card free">
+          <div class="label">Available stalls</div>
+          <div class="value" id="availCount">—</div>
+        </div>
+        <div class="status-card taken">
+          <div class="label">Currently booked</div>
+          <div class="value" id="bookedCount">—</div>
+        </div>
+      </div>
+      <div><div class="occ-bar-track"><div class="occ-bar-fill" id="occBarFill"></div></div></div>
+      <div class="controls">
+        <button class="btn primary" onclick="simulateEntry()">Simulate car entering</button>
+        <button class="btn" onclick="simulateExit()">Simulate car exiting</button>
+        <button class="btn" id="autoBtn" onclick="toggleAuto()">Start auto-simulation</button>
+      </div>
+    </div>
+
+    <div class="gauge-panel">
+      <div class="gauge" id="gauge" style="--pct:0;">
+        <span class="pct" id="gaugePct">0%</span>
+        <span class="lbl" style="position:absolute; margin-top:34px;">occupied</span>
+      </div>
+      <div class="gauge-caption" id="gaugeCaption">Real-time occupancy</div>
+    </div>
+  </div>
+
+  <div class="slots-section">
+    <h2>Stall map</h2>
+    <p class="hint">Click any stall to toggle it manually for demo purposes — a real deployment would sync this from Firestore.</p>
+    <div class="floor-tabs" id="floorTabs"></div>
+    <div class="floor-map">
+      <div class="gate-label top" id="entranceLabel" style="display:none;">ENTRANCE ↓</div>
+      <div class="slot-grid" id="slotGridTop"></div>
+      <div class="driveway"><span>◄ DRIVEWAY ►</span></div>
+      <div class="slot-grid" id="slotGridBottom"></div>
+      <div class="gate-label bottom" id="exitLabel" style="display:none;">EXIT →</div>
+    </div>
+    <div class="legend"><span><i class="lf"></i>Open</span><span><i class="lt"></i>Taken</span></div>
+    <p class="note">This dashboard demonstrates the UI only. In production, stall state is written by the entry/exit forms to Cloud Firestore, and this page would subscribe to that collection instead of local demo data.</p>
+  </div>
+</div>
+
+<script>
+  const LOTS = {
+    'main-campus': {
+      name: 'Main Campus Lot',
+      floors: {
+        'Ground': ['G-01','G-02','G-03','G-04','G-05','G-06'],
+        'Level 1': ['L1-01','L1-02','L1-03','L1-04','L1-05','L1-06'],
+        'Level 2': ['L2-01','L2-02','L2-03','L2-04']
+      }
+    },
+    'sjt-block': {
+      name: 'SJT Block Lot',
+      floors: {
+        'Basement': ['B-01','B-02','B-03','B-04'],
+        'Ground': ['G-01','G-02','G-03','G-04','G-05','G-06']
+      }
+    }
+  };
+
+  let currentLotId = 'main-campus';
+  let currentFloor = null;
+  let state = {};
+  let autoTimer = null;
+
+  function toggleTheme(){
+    const root = document.documentElement;
+    const isDark = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+  }
+  function setDevice(mode){
+    const frame = document.getElementById('wrapFrame');
+    frame.classList.toggle('force-mobile', mode === 'mobile');
+    document.getElementById('btnMobile').classList.toggle('on', mode === 'mobile');
+    document.getElementById('btnDesktop').classList.toggle('on', mode === 'desktop');
+  }
+
+  function initState(){
+    Object.entries(LOTS).forEach(([lotId, lot]) => {
+      state[lotId] = {};
+      let i = 0;
+      Object.values(lot.floors).flat().forEach(id => {
+        state[lotId][id] = (i % 3 === 0) ? 'taken' : 'free';
+        i++;
+      });
+    });
+  }
+
+  function buildLotSwitch(){
+    const wrap = document.getElementById('lotSwitch');
+    wrap.innerHTML = '';
+    Object.entries(LOTS).forEach(([id, lot]) => {
+      const b = document.createElement('button');
+      b.innerHTML = lot.name + ' <span class="id">(' + id + ')</span>';
+      if(id === currentLotId) b.classList.add('on');
+      b.onclick = () => { currentLotId = id; currentFloor = Object.keys(LOTS[id].floors)[0]; buildLotSwitch(); buildFloorTabs(); render(); };
+      wrap.appendChild(b);
+    });
+  }
+
+  function buildFloorTabs(){
+    const wrap = document.getElementById('floorTabs');
+    wrap.innerHTML = '';
+    Object.keys(LOTS[currentLotId].floors).forEach(f => {
+      const b = document.createElement('button');
+      b.textContent = f;
+      if(f === currentFloor) b.classList.add('on');
+      b.onclick = () => { currentFloor = f; buildFloorTabs(); render(); };
+      wrap.appendChild(b);
+    });
+  }
+
+  function totalStalls(lotId){ return Object.keys(state[lotId]).length; }
+  function takenCount(lotId){ return Object.values(state[lotId]).filter(v => v === 'taken').length; }
+
+  function render(){
+    const lot = LOTS[currentLotId];
+    document.getElementById('lotHeading').textContent = lot.name + ' — Admin';
+    const floorSummary = Object.entries(lot.floors).map(([f, s]) => f + ' (' + s.length + ')').join(' · ');
+    document.getElementById('lotMeta').textContent = floorSummary + ' · Smart Park';
+
+    const total = totalStalls(currentLotId);
+    const taken = takenCount(currentLotId);
+    const free = total - taken;
+    const pct = Math.round((taken/total)*100);
+
+    document.getElementById('availCount').textContent = free;
+    document.getElementById('bookedCount').textContent = taken;
+    document.getElementById('occBarFill').style.width = pct + '%';
+    document.getElementById('gauge').style.setProperty('--pct', pct);
+    document.getElementById('gaugePct').textContent = pct + '%';
+    document.getElementById('gaugeCaption').textContent = 'Real-time occupancy across all ' + total + ' stalls';
+
+    const ids = lot.floors[currentFloor];
+    const half = Math.ceil(ids.length / 2);
+    const topIds = ids.slice(0, half);
+    const bottomIds = ids.slice(half);
+    const isGround = /ground/i.test(currentFloor);
+    document.getElementById('entranceLabel').style.display = isGround ? 'block' : 'none';
+    document.getElementById('exitLabel').style.display = isGround ? 'block' : 'none';
+
+    function fillGrid(gridEl, list){
+      gridEl.innerHTML = '';
+      list.forEach(id => {
+        const el = document.createElement('div');
+        el.className = 'slot ' + state[currentLotId][id];
+        el.textContent = id;
+        el.onclick = () => { state[currentLotId][id] = state[currentLotId][id] === 'free' ? 'taken' : 'free'; render(); };
+        gridEl.appendChild(el);
+      });
+    }
+    fillGrid(document.getElementById('slotGridTop'), topIds);
+    fillGrid(document.getElementById('slotGridBottom'), bottomIds);
+  }
+
+  function randomStallWithState(target){
+    const ids = Object.keys(state[currentLotId]).filter(id => state[currentLotId][id] !== target);
+    if(ids.length === 0) return null;
+    return ids[Math.floor(Math.random()*ids.length)];
+  }
+
+  function simulateEntry(){ const id = randomStallWithState('taken'); if(id){ state[currentLotId][id] = 'taken'; render(); } }
+  function simulateExit(){ const id = randomStallWithState('free'); if(id){ state[currentLotId][id] = 'free'; render(); } }
+
+  function toggleAuto(){
+    const btn = document.getElementById('autoBtn');
+    if(autoTimer){
+      clearInterval(autoTimer); autoTimer = null;
+      btn.textContent = 'Start auto-simulation'; btn.classList.remove('on');
+    } else {
+      btn.textContent = 'Stop auto-simulation'; btn.classList.add('on');
+      autoTimer = setInterval(() => { Math.random() > 0.5 ? simulateEntry() : simulateExit(); }, 1500);
+    }
+  }
+
+  initState();
+  currentFloor = Object.keys(LOTS[currentLotId].floors)[0];
+  buildLotSwitch();
+  buildFloorTabs();
+  render();
+</script>
+</body>
+</html>
