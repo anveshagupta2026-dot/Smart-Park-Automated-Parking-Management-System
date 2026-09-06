@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartPark — Exit & Checkout</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Stripe.js CDN for checkout -->
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <a href="index.html" class="back-link">&larr; Back to Home</a>
+      <h1>SmartPark Exit Gate</h1>
+      <p>Instant checkout, dynamic duration pricing & Stripe payment</p>
+    </header>
+
+    <main class="card">
+      <h2>Complete Your Parking Session</h2>
+      <form id="exit-form" onsubmit="return false;">
+        <div id="phone-step">
+          <label for="phone-input">Mobile Number (used at entry):</label>
+          <input 
+            type="tel" 
+            id="phone-input" 
+            placeholder="+919876543210" 
+            required 
+          />
+          <button type="button" id="send-otp-btn" class="btn">Send OTP</button>
+        </div>
+
+        <div id="otp-step" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+          <label for="otp-input">Enter 6-Digit OTP:</label>
+          <input 
+            type="text" 
+            id="otp-input" 
+            placeholder="123456" 
+            maxlength="6" 
+            autocomplete="one-time-code" 
+          />
+          <button type="button" id="verify-otp-btn" class="btn btn-pay">Verify</button>
+        </div>
+
+        <!-- Hidden reCAPTCHA container for invisible RecaptchaVerifier -->
+        <div id="recaptcha-container"></div>
+      </form>
+
+      <div id="bill-summary" class="hidden">
+        <h3>Invoice Details</h3>
+        <p><strong>Duration:</strong> <span id="bill-duration">-</span></p>
+        <p><strong>Amount:</strong> ₹<span id="bill-amount">0</span></p>
+        <div id="payment-element-container"></div>
+        <button id="pay-btn" class="btn btn-pay">Pay with Stripe</button>
+      </div>
+
+      <div id="exit-status" class="status-box hidden"></div>
+    </main>
+  </div>
+
+  <script type="module" src="js/exit.js"></script>
+</body>
+</html>
+
