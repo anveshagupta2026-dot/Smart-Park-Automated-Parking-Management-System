@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Exit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161A1E; --ink-soft:#2B323B; --paper:#EDEAE2; --paper-2:#e4e0d3; --free:#2F6F4E; --taken:#B5402C;
+    --route:#3D6B8C; --line:#C7C2B4; --muted:#555049; --shadow:rgba(22,26,30,.16);
+  }
+  html[data-theme="dark"]{
+    --ink:#EDEAE2; --ink-soft:#c9c5b8; --paper:#1B1F24; --paper-2:#14171b; --free:#5fbb8c; --taken:#e07a5f;
+    --route:#7fb0d6; --line:#3a3f46; --muted:#a9a49a; --shadow:rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Space Grotesk', system-ui, sans-serif; color:var(--ink);
+    background:radial-gradient(circle at 30% 0%, var(--paper-2), var(--paper) 70%); display:flex; justify-content:center; padding:24px 0 60px; transition:background .3s;}
+
+  .toolbar{display:flex; justify-content:flex-end; gap:8px; padding:10px 14px; border-bottom:1px solid var(--ink); background:var(--paper);}
+  .icon-btn{width:32px; height:32px; border:1px solid var(--ink); background:var(--paper); color:var(--ink); cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; transition:.15s; flex:none;}
+  .icon-btn:hover{background:var(--line);}
+  .device-toggle{display:flex; border:1px solid var(--ink); overflow:hidden; flex:none;}
+  .device-toggle button{padding:0 8px; height:32px; border:none; background:var(--paper); color:var(--ink); font-family:inherit; font-size:11px; cursor:pointer; border-right:1px solid var(--ink);}
+  .device-toggle button:last-child{border-right:none;}
+  .device-toggle button.on{background:var(--ink); color:var(--paper);}
+
+  .device{width:390px; max-width:100%; background:var(--paper); border:1px solid var(--ink);
+    min-height:720px; display:flex; flex-direction:column; overflow-x:hidden; box-shadow:0 12px 28px var(--shadow); transition:width .25s, background .3s, color .3s;}
+  .device.desktop{width:640px;}
+
+  .brand{display:flex; align-items:center; gap:10px; padding:16px 20px 12px; border-bottom:1px solid var(--ink);}
+  .brand .mark{width:26px; height:26px; background:linear-gradient(135deg, var(--ink), var(--ink-soft)); flex:none;
+    display:flex; align-items:center; justify-content:center; color:var(--paper); font-size:13px; font-weight:700;}
+  .brand .name{font-size:13px; font-weight:600;}
+  .brand .lot{font-size:11px; color:var(--muted); margin-left:auto; text-align:right;}
+
+  .lot-switch{display:flex; gap:8px; padding:12px 20px 0; flex-wrap:wrap;}
+  .lot-switch button{padding:7px 14px; border:1px solid var(--ink); background:var(--paper); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; transition:.15s; color:var(--ink);}
+  .lot-switch button.on{background:var(--ink); color:var(--paper);}
+  .lot-switch button:hover:not(.on){background:var(--line);}
+
+  .stepper{display:flex; align-items:center; gap:6px; padding:16px 20px 12px;}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--line); transition:background .3s;}
+  .dot.active{background:var(--route);}
+  .dash{flex:1; height:1px; background-image:linear-gradient(to right, var(--line) 0 6px, transparent 6px 12px); background-size:12px 1px; background-repeat:repeat-x;}
+  .screen{display:none; flex-direction:column; padding:8px 20px 20px; flex:1; animation:fade .25s ease;}
+  .screen.active{display:flex;}
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  .eyebrow{font-size:13px; color:var(--route); margin:0 0 4px; font-weight:600; letter-spacing:.02em;}
+  h1{font-size:22px; margin:0 0 6px; font-weight:700;}
+  .sub{font-size:14px; color:var(--muted); margin:0 0 20px; line-height:1.5;}
+  .info-row{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px dashed var(--line); font-size:14px;}
+  .info-row .k{color:var(--muted);} .info-row .v{font-weight:600; font-variant-numeric:tabular-nums;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .field input{width:100%; border:none; border-bottom:2px solid var(--ink); background:transparent; font-family:inherit; font-size:20px; padding:8px 0; color:var(--ink);}
+  .field input:focus{outline:none; border-color:var(--route);}
+  .otp-row{display:flex; gap:8px;}
+  .otp-row input{width:44px; text-align:center; border:2px solid var(--ink); padding:10px 0; font-size:20px; font-family:inherit; transition:.15s; background:var(--paper); color:var(--ink);}
+  .otp-row input:focus{outline:none; border-color:var(--route); box-shadow:0 0 0 3px color-mix(in srgb, var(--route) 20%, transparent);}
+  .spacer{flex:1;}
+  .cta{width:100%; padding:16px; background:linear-gradient(135deg, var(--ink), var(--ink-soft)); color:var(--paper); border:none; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; margin-top:auto; transition:.15s; box-shadow:0 4px 10px var(--shadow);}
+  .cta:hover{transform:translateY(-1px);}
+  .toggle-link{font-size:12px; color:var(--route); cursor:pointer; text-decoration:underline; margin-bottom:16px; display:inline-block;}
+  .breakdown{font-size:12px; color:var(--muted); border-left:2px solid var(--line); padding-left:12px; margin:4px 0 16px; display:none;}
+  .breakdown.open{display:block;}
+  .breakdown div{display:flex; justify-content:space-between; padding:3px 0;}
+  .total{display:flex; justify-content:space-between; align-items:baseline; padding:16px 0; border-top:1px solid var(--ink); border-bottom:1px solid var(--ink); margin:8px 0 20px;}
+  .total .k{font-size:14px;} .total .v{font-size:28px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .status-mark{width:56px; height:56px; border:2px solid var(--free); display:flex; align-items:center; justify-content:center; font-size:26px; color:var(--free); margin-bottom:20px;}
+  .pay-card{border:1px solid var(--ink); padding:16px; margin-bottom:16px; display:flex; flex-direction:column; gap:12px;}
+  .pay-card .row{display:flex; gap:8px;}
+  .pay-card input{flex:1; border:1px solid var(--line); padding:10px; font-family:inherit; font-size:14px; background:var(--paper); color:var(--ink);}
+  .error-banner{border:1px solid var(--taken); color:var(--taken); padding:10px 12px; font-size:12px; margin-bottom:16px; display:none;}
+  .error-banner.show{display:block;}
+
+  /* ---- Phone / country code ---- */
+  .phone-row{display:flex; gap:10px; align-items:stretch;}
+  .country-select{position:relative; flex:0 0 108px; min-width:0;}
+  .country-select select{width:100%; appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    border:none; border-bottom:2px solid var(--ink); background:transparent; font-family:inherit;
+    font-size:15px; padding:8px 16px 8px 0; color:var(--ink); cursor:pointer;}
+  .country-select select:focus{outline:none; border-color:var(--route);}
+  .country-select::after{content:'▾'; position:absolute; right:2px; bottom:12px; font-size:10px; color:var(--muted); pointer-events:none;}
+  .phone-row .field{flex:1; min-width:0; margin-bottom:0;}
+
+  /* ---- fix: card row inputs overflowing the pay card on narrow screens ---- */
+  .pay-card{min-width:0; overflow:hidden;}
+  .pay-card .row{min-width:0;}
+  .pay-card .row input{min-width:0; width:100%; font-variant-numeric:tabular-nums;}
+
+  /* ---- small 3D touch on the driveway strip, matching the entry map ---- */
+  .driveway{transform:perspective(300px) rotateX(10deg); box-shadow:inset 0 6px 10px -8px rgba(0,0,0,.35);}
+</style>
+</head>
+<body>
+
+<div class="device" id="deviceFrame">
+  <div class="toolbar">
+    <div class="device-toggle">
+      <button id="btnMobile" class="on" onclick="setDevice('mobile')">📱 Phone</button>
+      <button id="btnDesktop" onclick="setDevice('desktop')">🖥 Desktop</button>
+    </div>
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+  </div>
+  <div class="brand">
+    <div class="mark">SP</div>
+    <div class="name">Smart Park</div>
+    <div class="lot" id="lotLabel">—</div>
+  </div>
+
+  <div class="lot-switch" id="lotSwitch"></div>
+
+  <div class="stepper" id="stepper"></div>
+
+  <section class="screen active" data-step="0">
+    <p class="eyebrow">Exit · Step 1 of 3</p>
+    <h1>Verify to exit</h1>
+    <p class="sub">Confirm your number again — this re-links you to your active ticket.</p>
+    <div class="field">
+      <label>Phone number</label>
+      <div class="phone-row">
+        <div class="country-select"><select id="exitCountryCode"></select></div>
+        <input id="exitPhone" type="tel" value="9876543210" maxlength="10">
+      </div>
+    </div>
+    <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:8px;">Enter the 4-digit code</label>
+    <div class="otp-row">
+      <input maxlength="1" value="4" oninput="otpJump(this)"><input maxlength="1" value="1" oninput="otpJump(this)">
+      <input maxlength="1" value="9" oninput="otpJump(this)"><input maxlength="1" value="2" oninput="otpJump(this)">
+    </div>
+    <div class="spacer"></div>
+    <button class="cta" onclick="goStep(1)">Verify</button>
+  </section>
+
+  <section class="screen" data-step="1">
+    <p class="eyebrow">Exit · Step 2 of 3</p>
+    <h1>Your bill</h1>
+    <p class="sub">Locked the moment you scanned this QR — it won't change even if payment fails.</p>
+    <div class="info-row"><span class="k">Lot</span><span class="v" id="billLot">—</span></div>
+    <div class="info-row"><span class="k">Stall</span><span class="v">G-03</span></div>
+    <div class="info-row"><span class="k">Duration</span><span class="v">2 hr 14 min</span></div>
+    <span class="toggle-link" onclick="document.getElementById('breakdown').classList.toggle('open')">See rate calculation</span>
+    <div class="breakdown" id="breakdown">
+      <div><span>Base rate</span><span>₹50 / hr</span></div>
+      <div><span>Occupancy ×1.3</span><span>₹65 / hr</span></div>
+      <div><span>Peak hour ×1.2</span><span>₹78 / hr</span></div>
+      <div><span>Ceiling applied</span><span>capped at ₹100 / hr</span></div>
+    </div>
+    <div class="total"><span class="k">Amount due</span><span class="v">₹175</span></div>
+    <div class="spacer"></div>
+    <button class="cta" onclick="goStep(2)">Pay ₹175</button>
+  </section>
+
+  <section class="screen" data-step="2">
+    <p class="eyebrow">Exit · Step 3 of 3</p>
+    <h1 id="payHeading">Pay to exit</h1>
+    <p class="sub" id="paySub">Same amount every time — a failed attempt never recalculates your bill.</p>
+    <div class="error-banner" id="payError">Payment didn't go through. Your amount is still ₹175 — try again.</div>
+    <div class="pay-card">
+      <div class="row"><input value="4242 4242 4242 4242"></div>
+      <div class="row"><input value="12/28" style="flex:1;"><input value="123" style="flex:1;"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="cta" id="payBtn" onclick="simulatePayment()">Pay ₹175</button>
+  </section>
+
+  <section class="screen" data-step="3">
+    <div class="status-mark">✓</div>
+    <h1>Exit confirmed</h1>
+    <p class="sub">Your stall is now open for the next driver. Thanks for parking with us.</p>
+    <div class="spacer"></div>
+  </section>
+</div>
+
+<script>
+  const LOTS = {
+    'main-campus': { name: 'Main Campus Lot' },
+    'sjt-block': { name: 'SJT Block Lot' }
+  };
+  const params = new URLSearchParams(window.location.search);
+  let currentLotId = LOTS[params.get('lot')] ? params.get('lot') : 'main-campus';
+
+  let current = 0;
+  let paymentAttempts = 0;
+
+  // Common international dial codes for the phone field
+  const COUNTRIES = [
+    { dial:'+91', flag:'🇮🇳', name:'India', len:10 },
+    { dial:'+1',  flag:'🇺🇸', name:'USA/Canada', len:10 },
+    { dial:'+44', flag:'🇬🇧', name:'UK', len:10 },
+    { dial:'+971',flag:'🇦🇪', name:'UAE', len:9 },
+    { dial:'+65', flag:'🇸🇬', name:'Singapore', len:8 },
+    { dial:'+61', flag:'🇦🇺', name:'Australia', len:9 },
+    { dial:'+49', flag:'🇩🇪', name:'Germany', len:11 },
+    { dial:'+33', flag:'🇫🇷', name:'France', len:9 },
+    { dial:'+81', flag:'🇯🇵', name:'Japan', len:10 },
+    { dial:'+86', flag:'🇨🇳', name:'China', len:11 }
+  ];
+  function populateCountrySelect(){
+    const sel = document.getElementById('exitCountryCode');
+    if(!sel) return;
+    sel.innerHTML = '';
+    COUNTRIES.forEach((c, i) => {
+      const o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = c.flag + ' ' + c.dial;
+      sel.appendChild(o);
+    });
+  }
+  function onExitPhoneInput(){
+    const sel = document.getElementById('exitCountryCode');
+    const phoneEl = document.getElementById('exitPhone');
+    const country = COUNTRIES[Number(sel.value || 0)];
+    phoneEl.maxLength = country.len;
+  }
+
+  function toggleTheme(){
+    const root = document.documentElement;
+    const isDark = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+  }
+  function setDevice(mode){
+    const frame = document.getElementById('deviceFrame');
+    frame.classList.toggle('desktop', mode === 'desktop');
+    document.getElementById('btnMobile').classList.toggle('on', mode === 'mobile');
+    document.getElementById('btnDesktop').classList.toggle('on', mode === 'desktop');
+  }
+
+  function buildLotSwitch(){
+    const wrap = document.getElementById('lotSwitch');
+    wrap.innerHTML = '';
+    Object.entries(LOTS).forEach(([id, lot]) => {
+      const b = document.createElement('button');
+      b.textContent = lot.name;
+      if(id === currentLotId) b.classList.add('on');
+      b.onclick = () => {
+        currentLotId = id;
+        buildLotSwitch();
+        document.getElementById('lotLabel').textContent = LOTS[id].name;
+        document.getElementById('billLot').textContent = LOTS[id].name;
+      };
+      wrap.appendChild(b);
+    });
+  }
+
+  function otpJump(el){ if(el.value.length === 1 && el.nextElementSibling) el.nextElementSibling.focus(); }
+
+  function renderStepper(){
+    const wrap = document.getElementById('stepper');
+    wrap.innerHTML = '';
+    for(let i=0;i<4;i++){
+      const d = document.createElement('div');
+      d.className = 'dot' + (i <= current ? ' active' : '');
+      wrap.appendChild(d);
+      if(i<3){ const dash = document.createElement('div'); dash.className='dash'; wrap.appendChild(dash); }
+    }
+  }
+
+  function goStep(n){
+    current = n;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelector('.screen[data-step="'+n+'"]').classList.add('active');
+    renderStepper();
+  }
+
+  function simulatePayment(){
+    paymentAttempts++;
+    if(paymentAttempts === 1){
+      document.getElementById('payError').classList.add('show');
+      document.getElementById('payHeading').textContent = "Payment didn't go through";
+      document.getElementById('paySub').textContent = 'Retry below — the amount stays locked at ₹175.';
+      document.getElementById('payBtn').textContent = 'Retry — Pay ₹175';
+    } else {
+      goStep(3);
+    }
+  }
+
+  document.getElementById('lotLabel').textContent = LOTS[currentLotId].name;
+  document.getElementById('billLot').textContent = LOTS[currentLotId].name;
+  buildLotSwitch();
+  renderStepper();
+  populateCountrySelect();
+  document.getElementById('exitCountryCode').onchange = onExitPhoneInput;
+</script>
+</body>
+</html>
