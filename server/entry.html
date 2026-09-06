@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartPark — Entry</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <a href="index.html" class="back-link">&larr; Back to Home</a>
+      <h1>SmartPark Entry Gate</h1>
+      <p>Scan entry QR &bull; Live parking slot availability</p>
+    </header>
+
+    <main>
+      <!-- Real-time dynamic parking bay grid loaded by js/entry.js -->
+      <div id="parking-grid">
+        <div class="loading">Loading real-time slot data...</div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/entry.js"></script>
+</body>
+</html>
+

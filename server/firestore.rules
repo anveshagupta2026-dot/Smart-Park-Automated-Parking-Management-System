@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(phone) {
+      return isAuthenticated() && request.auth.token.phone_number == phone;
+    }
+
+    match /lots/{lotId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /slots/{slotId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    match /tickets/{phone} {
+      allow read: if isOwner(phone);
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

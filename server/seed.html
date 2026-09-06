@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartPark — Database Seeder</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body {
+      max-width: 650px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.5;
+    }
+    .seeder-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      background: #ffffff;
+    }
+    #log {
+      background: #111827;
+      color: #10b981;
+      padding: 14px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      margin-top: 20px;
+      min-height: 120px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="seeder-box">
+    <a href="index.html" class="back-link">&larr; Back to Home</a>
+    <h1>SmartPark Test Seeder</h1>
+    <p>This utility initializes test data in Cloud Firestore via a Cloud Function:</p>
+    <ul>
+      <li><strong>1 Lot:</strong> <code>lot-1</code> ("SmartPark Central", 20 total slots)</li>
+      <li><strong>20 Slots:</strong> Floor 1 (10 slots) &amp; Floor 2 (10 slots), all set to <code>available</code></li>
+    </ul>
+
+    <button id="seedBtn" class="btn">Seed Database</button>
+    <div id="log">Ready. Click "Seed Database" to start...</div>
+  </div>
+
+  <script type="module">
+    import { functions } from "./js/firebase-config.js";
+    import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
+
+    const seedDatabase = httpsCallable(functions, "seedDatabase");
+
+    const seedBtn = document.getElementById("seedBtn");
+    const logBox = document.getElementById("log");
+
+    function log(msg) {
+      logBox.textContent += "\n" + msg;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    seedBtn.addEventListener("click", async () => {
+      seedBtn.disabled = true;
+      logBox.textContent = "[INFO] Calling seedDatabase Cloud Function...";
+
+      try {
+        const result = await seedDatabase();
+        const data = result.data;
+
+        if (data.alreadyExists) {
+          log(`[INFO] ${data.message}`);
+        } else {
+          log(`[OK] ${data.message}`);
+          log(`✅ SUCCESS: ${data.slotsCreated} slots created!`);
+        }
+      } catch (error) {
+        console.error("Seed error:", error);
+        log(`❌ ERROR: ${error.message}`);
+        log("Tip: Confirm seedDatabase is deployed (firebase deploy --only functions).");
+      } finally {
+        seedBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
