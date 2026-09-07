@@ -1,30 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isOwner(phone) {
-      return isAuthenticated() && request.auth.token.phone_number == phone;
+    match /config/{docId} {
+      allow read: if true;      // just the public base URL used to build gate links
+      allow write: if false;    // set via the setBaseUrl function
     }
 
     match /lots/{lotId} {
-      allow read: if true;
+      allow read: if true;          // name, floors, layout, cameras are public-readable
       allow write: if false;
-
-      match /slots/{slotId} {
-        allow read: if true;
-        allow write: if false;
-      }
-    }
-
-    match /tickets/{phone} {
-      allow read: if isOwner(phone);
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      match /slots/{slotId}   { allow read: if true;  allow write: if false; }
+      match /tickets/{email}  { allow read: if false; allow write: if false; }
+      match /payments/{id}    { allow read: if false; allow write: if false; }  // via getRevenue only
     }
   }
 }

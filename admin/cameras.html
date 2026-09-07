@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Cameras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  .head{display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--ink); flex-wrap:wrap;}
+  .head .grow{flex:1;}
+  .head .stamp{font-size:11px; color:var(--muted);}
+  .body{display:grid; grid-template-columns:1fr 300px;}
+  @media(max-width:900px){.body{grid-template-columns:1fr;}}
+  .stage{padding:18px 20px; border-right:1px solid var(--ink);}
+  @media(max-width:900px){.stage{border-right:none; border-bottom:1px solid var(--ink);}}
+  .map-wrap{border:1.5px solid var(--ink); background:var(--paper-2); padding:14px; perspective:1100px;}
+  .legend{display:flex; gap:14px; font-size:11px; color:var(--muted); margin-top:10px; flex-wrap:wrap;}
+  .legend i{display:inline-block; width:11px; height:11px; border:1px solid var(--ink); vertical-align:-1px; margin-right:5px;}
+  .side{padding:18px; display:flex; flex-direction:column; gap:16px;}
+  .sum{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .sum div{border:1px solid var(--ink); padding:10px 12px;}
+  .sum .l{font-size:10px; text-transform:uppercase; color:var(--muted);}
+  .sum .v{font-size:22px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .sum .warn .v{color:var(--warn);} .sum .ok .v{color:var(--free);}
+  .list{display:flex; flex-direction:column; gap:6px; max-height:220px; overflow:auto;}
+  .item{border:1px solid var(--line); padding:8px 10px; font-size:12px; display:flex; justify-content:space-between; gap:8px; align-items:center;}
+  .item b{font-family:'JetBrains Mono',monospace;} .item .m{color:var(--muted); font-size:11px;}
+  .item.warn{border-color:var(--warn); background:color-mix(in srgb,var(--warn) 12%,var(--paper));}
+  .sim{border:1.5px dashed var(--ink); padding:12px 14px;}
+  .sim h3{margin-bottom:6px;}
+  .sim p{font-size:11.5px; color:var(--muted); line-height:1.5; margin-bottom:10px;}
+  .sim .row{display:flex; gap:6px; flex-wrap:wrap;}
+  .pending{font-size:11px; color:var(--warn); font-weight:700;}
+  details.api{border:1px solid var(--ink); padding:12px 14px;}
+  details.api summary{font-size:12px; font-weight:700; cursor:pointer;}
+  details.api pre{background:var(--paper-2); border:1px solid var(--line); padding:12px; margin-top:10px; overflow:auto; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.5;}
+  details.api p{font-size:12px; color:var(--muted); margin-top:10px; line-height:1.6;}
+  details.api code{font-family:'JetBrains Mono',monospace; font-size:11px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="mark">SP</div><div><h1 data-brand-title>Smart Park</h1><div class="tag" data-brand-tag></div></div></div>
+    <div class="hdr-right"><span class="live-dot" id="liveDot"><i></i> <span id="liveText">Connecting</span></span><button class="icon-btn" id="themeBtn">🌙</button></div>
+  </header>
+  <nav class="navbar">
+    <a href="control.html">Control Room</a>
+    <a href="layout.html">Layout</a>
+    <a href="cameras.html">Cameras</a>
+    <a href="qr.html">QR Codes</a>
+    <a href="revenue.html">Revenue</a>
+    <span class="spacer"></span>
+    <a href="index.html" class="switch">switch lot</a>
+  </nav>
+
+  <div class="head">
+    <div class="seg" id="floorTabs"></div>
+    <span class="stamp" id="stamp">No frame received yet.</span>
+    <div class="grow"></div>
+    <div class="seg"><button id="btn2D" class="on">Flat</button><button id="btn3D">Isometric</button></div>
+  </div>
+
+  <div class="body">
+    <div class="stage">
+      <div class="map-wrap"><div class="bp-grid" id="grid"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--free-bg)"></i>Open</span>
+        <span><i style="background:var(--taken-bg)"></i>Booked</span>
+        <span><i style="background:color-mix(in srgb,var(--warn) 40%,var(--paper)); border-color:var(--warn)"></i>Camera sees a car</span>
+        <span id="clickHint" class="hidden" style="color:var(--warn); font-weight:700;">Simulating — click cells to toggle a car</span>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="sum">
+        <div class="ok"><div class="l">Agree</div><div class="v" id="nAgree">—</div></div>
+        <div class="warn"><div class="l">Disagree</div><div class="v" id="nFlag">—</div></div>
+        <div><div class="l">Cars seen</div><div class="v" id="nCars">—</div></div>
+        <div><div class="l">Bays on floor</div><div class="v" id="nBays">—</div></div>
+      </div>
+
+      <div>
+        <h3>Disagreements on this floor</h3>
+        <div class="list" id="mismatchList"><div class="empty">None.</div></div>
+        <div style="margin-top:8px;"><button class="btn danger" id="applyBtn">Make bookings match the camera</button></div>
+        <p class="note" style="margin-top:6px;">Bays the camera sees become booked (no ticket); bays it doesn't see are freed and their tickets deleted.</p>
+      </div>
+
+      <div class="sim">
+        <h3>No camera yet? Simulate one</h3>
+        <p>Click cells on the plan to mark where cars are, then send the frame — exactly what the vision script will do.</p>
+        <div class="row">
+          <button class="btn" id="simBtn">Start simulating</button>
+          <button class="btn primary hidden" id="sendBtn">Send frame</button>
+          <button class="btn hidden" id="cancelSimBtn">Cancel</button>
+        </div>
+        <div class="pending hidden" id="pending"></div>
+      </div>
+
+      <details class="api">
+        <summary>Hooking up the vision script</summary>
+        <p>One still camera per floor. After each frame, send the grid coordinates that contain a car.
+        Coordinates are <code>"row_col"</code> on this floor's plan — the same grid you drew on the Layout page.
+        The backend maps cells to bays and records what the camera sees without touching bookings.</p>
+<pre># Python — after each processed frame
+import requests
+FN = "https://us-central1-smart-park-3b9a8.cloudfunctions.net/reportCameraFrame"
+
+def report(lot_id, floor, car_cells):
+    # car_cells: list of "row_col" strings, e.g. ["3_1", "3_2", "5_4"]
+    requests.post(FN, json={"data": {
+        "lotId": lot_id, "floor": floor,
+        "cells": car_cells, "source": "cam-ground-1"
+    }})
+
+report("phoneix-marketcity", "Ground", ["3_1", "3_2", "5_4"])</pre>
+        <p>Callables want the body wrapped in <code>{"data": {...}}</code>. Send the full set each time — anything not
+        listed is treated as empty. To let the camera drive bookings automatically, call
+        <code>applyCameraFrame</code> with <code>{"lotId","floor"}</code> after each report.</p>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<script type="module">
+import { db, functions } from "./js/firebase-config.js";
+import { doc, onSnapshot, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
+import { fromStore, starter, overlay, overlayCamera, render, isBay, BP_CSS } from "./js/blueprint.js";
+import { mountAdminChrome, toast, explain, live, getLotId, rememberLot, renderNoLots } from "./js/adminui.js";
+
+mountAdminChrome({ title: "Cameras", tag: "", here: "cameras.html" });
+document.head.appendChild(Object.assign(document.createElement("style"), { textContent: BP_CSS }));
+const $ = (id) => document.getElementById(id);
+const reportCameraFrame = httpsCallable(functions, "reportCameraFrame");
+const applyCameraFrame = httpsCallable(functions, "applyCameraFrame");
+const floorKey = (f) => String(f).replace(/[.~*/[\]]/g, "_");
+
+let lotId = getLotId();
+let lot = null, floors = [], floor = null, slots = [], iso = false;
+let sim = null;   // Set of "r_c" while simulating
+
+(async function boot() {
+  if (!lotId) {
+    live(false, "Finding a lot…");
+    const snap = await getDocs(collection(db, "lots"));
+    if (snap.empty) { renderNoLots(document.querySelector(".wrap")); return; }
+    lotId = snap.docs[0].id;
+  }
+  rememberLot(lotId);
+  subscribe();
+})();
+
+function subscribe() {
+  onSnapshot(doc(db, "lots", lotId), (s) => {
+    if (!s.exists()) { live(false, "No such lot"); return; }
+    lot = s.data();
+    document.querySelector("[data-brand-title]").textContent = lot.name || lotId;
+    document.querySelector("[data-brand-tag]").textContent = lot.location || "";
+    mergeFloors(Array.isArray(lot.floors) ? lot.floors : []); draw();
+  }, (e) => { live(false, "Offline"); toast(explain(e), true); });
+  onSnapshot(collection(db, "lots", lotId, "slots"), (snap) => {
+    slots = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    mergeFloors([...new Set(slots.map(s => s.floor).filter(Boolean))]); live(true, "Live"); draw();
+  }, (e) => { live(false, "Offline"); toast(explain(e), true); });
+}
+
+function mergeFloors(incoming) {
+  const merged = [...new Set([...floors, ...incoming])];
+  const changed = merged.length !== floors.length;
+  floors = merged.length ? merged : ["Ground"];
+  if (!floor || !floors.includes(floor)) floor = floors[0];
+  if (changed || !$("floorTabs").children.length) {
+    const t = $("floorTabs"); t.innerHTML = "";
+    floors.forEach(f => { const b = document.createElement("button"); b.textContent = f; b.classList.toggle("on", f === floor);
+      b.onclick = () => { if (sim && !confirm("Discard the simulated frame?")) return; sim = null; floor = f; mergeFloors([]); draw(); }; t.appendChild(b); });
+  }
+}
+const here = () => slots.filter(s => s.floor === floor);
+
+function draw() {
+  if (!floor) return;
+  const stored = lot?.layout?.floors?.[floorKey(floor)];
+  const bp = fromStore(stored) || starter(here().map(s => s.label));
+  const frame = lot?.cameras?.[floorKey(floor)];
+  const cells = sim ? [...sim] : (frame?.cells || []);
+  const shown = overlayCamera(overlay(bp, here()), cells);
+  render($("grid"), shown, {});
+  $("grid").classList.toggle("iso", iso);
+  $("grid").classList.toggle("editing", !!sim);
+  $("clickHint").classList.toggle("hidden", !sim);
+
+  // stats + mismatches computed from the plan: bay cell ↔ car cell
+  const carSet = new Set(cells);
+  const byLabel = new Map(here().map(s => [s.label, s]));
+  let agree = 0, flags = [];
+  bp.matrix.forEach((row, r) => row.forEach((cell, c) => {
+    if (!isBay(cell)) return;
+    const s = byLabel.get(cell.id); if (!s) return;
+    const car = carSet.has(`${r}_${c}`), booked = s.status === "occupied";
+    if (car === booked) agree++;
+    else flags.push({ label: s.label, why: car ? "Car present, no booking" : "Booked, but bay looks empty" });
+  }));
+  $("nAgree").textContent = agree; $("nFlag").textContent = flags.length;
+  $("nCars").textContent = cells.length; $("nBays").textContent = here().length;
+  $("mismatchList").innerHTML = flags.length ? flags.map(f => `<div class="item warn"><b>${f.label}</b><span class="m">${f.why}</span></div>`).join("") : `<div class="empty">None.</div>`;
+  $("applyBtn").disabled = !frame || !flags.length || !!sim;
+  $("stamp").textContent = sim ? "Simulating — not sent yet" : frame?.updatedAt?.toMillis
+    ? `Last frame ${new Date(frame.updatedAt.toMillis()).toLocaleString()} · ${frame.source || "unknown source"}`
+    : "No frame received for this floor yet.";
+  if (!stored) $("stamp").textContent += " · No saved plan for this floor — draw one so cells can map to bays.";
+}
+$("btn2D").onclick = () => { iso = false; $("btn2D").classList.add("on"); $("btn3D").classList.remove("on"); draw(); };
+$("btn3D").onclick = () => { iso = true; $("btn3D").classList.add("on"); $("btn2D").classList.remove("on"); draw(); };
+
+// ---- simulate a frame ----
+function setSim(on) {
+  sim = on ? new Set(lot?.cameras?.[floorKey(floor)]?.cells || []) : null;
+  $("simBtn").classList.toggle("hidden", on); $("sendBtn").classList.toggle("hidden", !on); $("cancelSimBtn").classList.toggle("hidden", !on);
+  $("pending").classList.toggle("hidden", !on); if (on) $("pending").textContent = `${sim.size} cell${sim.size===1?"":"s"} marked`;
+  draw();
+}
+$("simBtn").onclick = () => setSim(true);
+$("cancelSimBtn").onclick = () => setSim(false);
+$("grid").addEventListener("click", (e) => {
+  if (!sim) return;
+  const c = e.target.closest(".bp-cell"); if (!c) return;
+  const k = `${c.dataset.r}_${c.dataset.c}`;
+  if (sim.has(k)) sim.delete(k); else sim.add(k);
+  $("pending").textContent = `${sim.size} cell${sim.size===1?"":"s"} marked`; draw();
+});
+$("sendBtn").onclick = async () => {
+  const b = $("sendBtn"); b.disabled = true; b.textContent = "Sending…";
+  try { const { data } = await reportCameraFrame({ lotId, floor, cells: [...sim], source: "simulated" });
+    toast(`Frame sent — ${data.detected} car${data.detected===1?"":"s"}, mapped to ${data.baysMirrored} bays.`); setSim(false); }
+  catch (e) { toast(explain(e), true); }
+  finally { b.disabled = false; b.textContent = "Send frame"; }
+};
+$("applyBtn").onclick = async () => {
+  if (!confirm(`Overwrite bookings on ${floor} to match the last camera frame? Tickets on freed bays are deleted.`)) return;
+  $("applyBtn").disabled = true;
+  try { const { data } = await applyCameraFrame({ lotId, floor }); toast(`Done — ${data.filled} marked booked, ${data.freed} freed.`); }
+  catch (e) { toast(explain(e), true); $("applyBtn").disabled = false; }
+};
+</script>
+</body>
+</html>
