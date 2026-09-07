@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Control Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  .top-grid{display:grid; grid-template-columns:1.2fr 1fr; border-bottom:1px solid var(--ink);}
+  @media(max-width:760px){.top-grid{grid-template-columns:1fr;}}
+  .status-panel{padding:20px; border-right:1px solid var(--ink); display:flex; flex-direction:column; gap:14px;}
+  @media(max-width:760px){.status-panel{border-right:none; border-bottom:1px solid var(--ink);}}
+  .status-row{display:flex; gap:12px; flex-wrap:wrap;}
+  .status-card{flex:1; min-width:104px; border:1px solid var(--ink); padding:12px;}
+  .status-card .label{font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:4px;}
+  .status-card .value{font-size:28px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .status-card.free .value{color:var(--free);} .status-card.taken .value{color:var(--taken);} .status-card.rev .value{font-size:23px;}
+  .occ-bar-track{height:8px; background:var(--line);}
+  .occ-bar-fill{height:100%; background:var(--route); width:0%; transition:width .3s;}
+  .floors{display:flex; flex-direction:column; gap:6px;}
+  .floorline{display:grid; grid-template-columns:110px 1fr auto; gap:10px; align-items:center; font-size:11.5px;}
+  .floorline .bar{height:6px; background:var(--line);}
+  .floorline .bar i{display:block; height:100%; background:var(--taken); transition:width .3s;}
+  .floorline .n{font-family:'JetBrains Mono',monospace; color:var(--muted);}
+  .gauge-panel{padding:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;}
+  .gauge{width:140px; height:140px; border-radius:50%; background:conic-gradient(var(--route) calc(var(--pct)*1%), var(--line) 0); display:flex; align-items:center; justify-content:center; position:relative; transition:background .4s;}
+  .gauge::before{content:""; position:absolute; width:110px; height:110px; border-radius:50%; background:var(--paper);}
+  .gauge .pct{position:relative; font-size:26px; font-weight:700;}
+  .panels{display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--ink);}
+  @media(max-width:760px){.panels{grid-template-columns:1fr;}}
+  .panel{padding:16px 20px; border-right:1px solid var(--ink);}
+  .panel:last-child{border-right:none;}
+  .list{display:flex; flex-direction:column; gap:6px; max-height:200px; overflow:auto;}
+  .item{display:flex; justify-content:space-between; align-items:center; gap:8px; border:1px solid var(--line); padding:8px 10px; font-size:12px;}
+  .item b{font-family:'JetBrains Mono',monospace;} .item .muted{color:var(--muted); font-size:11px;}
+  .item.warn{border-color:var(--warn); background:color-mix(in srgb,var(--warn) 12%,var(--paper));}
+  .studio{padding:20px;}
+  .studio-head{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
+  .studio-head h2{font-size:15px;} .studio-head .sub{font-size:11px; color:var(--muted);}
+  .map-wrap{border:1.5px solid var(--ink); background:var(--paper-2); padding:14px; max-width:760px; perspective:1100px;}
+  .inspector{border:1.5px solid var(--ink); background:var(--paper-2); padding:12px 14px; margin-top:14px; max-width:760px;}
+  .inspector .ttl{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:8px;}
+  .inspector .id{font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700;}
+  .inspector .meta{font-size:11px; color:var(--muted); margin-bottom:10px; line-height:1.6;}
+  .inspector .acts{display:flex; gap:6px; flex-wrap:wrap;}
+  .inspector .rename{display:flex; gap:6px; margin-top:8px;} .inspector .rename input{max-width:150px; padding:5px 8px; font-size:12px;}
+  .badge{display:inline-block; padding:2px 7px; border:1px solid currentColor; font-size:10px; font-weight:700; text-transform:uppercase;}
+  .badge.free{color:var(--free);} .badge.taken{color:var(--taken);} .badge.warn{color:var(--warn);}
+  .unplaced{font-size:11px; color:var(--warn); margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="mark">SP</div><div><h1 data-brand-title>Smart Park</h1><div class="tag" data-brand-tag></div></div></div>
+    <div class="hdr-right"><span class="live-dot" id="liveDot"><i></i> <span id="liveText">Connecting</span></span><button class="icon-btn" id="themeBtn">🌙</button></div>
+  </header>
+  <nav class="navbar">
+    <a href="control.html">Control Room</a>
+    <a href="layout.html">Layout</a>
+    <a href="cameras.html">Cameras</a>
+    <a href="qr.html">QR Codes</a>
+    <a href="revenue.html">Revenue</a>
+    <span class="spacer"></span>
+    <a href="index.html" class="switch">switch lot</a>
+  </nav>
+
+  <div class="top-grid">
+    <div class="status-panel">
+      <div class="status-row">
+        <div class="status-card free"><div class="label">Open bays</div><div class="value" id="availCount">—</div></div>
+        <div class="status-card taken"><div class="label">Booked bays</div><div class="value" id="bookedCount">—</div></div>
+        <div class="status-card rev"><div class="label">Revenue to date</div><div class="value" id="revenue">₹—</div></div>
+      </div>
+      <div class="occ-bar-track"><div class="occ-bar-fill" id="occBar"></div></div>
+      <div class="floors" id="floorLines"></div>
+      <div><button class="mini" id="clearAllBtn">Free every bay in this lot</button></div>
+    </div>
+    <div class="gauge-panel">
+      <div class="gauge" id="gauge" style="--pct:0;"><span class="pct" id="gaugePct">0%</span></div>
+      <div style="font-size:11px; color:var(--muted);">Live occupancy</div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="panel"><h3>Open tickets</h3><div class="list" id="ticketList"><div class="empty">Nobody parked right now.</div></div></div>
+    <div class="panel"><h3>Camera disagreements</h3><div class="list" id="mismatchList"><div class="empty">Nothing flagged.</div></div></div>
+  </div>
+
+  <div class="studio">
+    <div class="studio-head">
+      <div><h2>Live map</h2><div class="sub">Exactly what drivers see. Click a bay for its details.</div></div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <div class="seg" id="floorTabs"></div>
+        <div class="seg"><button id="btn2D" class="on">Flat</button><button id="btn3D">Isometric</button></div>
+        <a class="btn primary" id="editLink" href="layout.html">Edit layout →</a>
+      </div>
+    </div>
+    <div class="map-wrap"><div class="bp-grid" id="grid"></div></div>
+    <div class="unplaced hidden" id="unplaced"></div>
+    <div class="inspector hidden" id="inspector"></div>
+  </div>
+</div>
+
+<script type="module">
+import { db, functions } from "./js/firebase-config.js";
+import { doc, onSnapshot, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
+import { starter, fromStore, overlay, overlayCamera, render, isBay, BP_CSS } from "./js/blueprint.js";
+import { mountAdminChrome, toast, explain, live, getLotId, rememberLot, withLot, renderNoLots } from "./js/adminui.js";
+
+mountAdminChrome({ title: "Control Room", tag: "", here: "control.html" });
+document.head.appendChild(Object.assign(document.createElement("style"), { textContent: BP_CSS }));
+const $ = (id) => document.getElementById(id);
+const call = (n) => httpsCallable(functions, n);
+const resetTicket = call("resetTicket"), deleteSlot = call("deleteSlot"), renameSlot = call("renameSlot"),
+      clearAllTickets = call("clearAllTickets"), reportCameraFrame = call("reportCameraFrame");
+
+let lotId = getLotId();
+let lot = null, floors = [], floor = null, slots = [], tickets = [], selected = null, iso = false;
+const here = () => slots.filter(s => s.floor === floor);
+const floorKey = (f) => String(f).replace(/[.~*/[\]]/g, "_");
+const mismatch = (s) => (s.sensorState === "car" && s.status !== "occupied") || (s.sensorState === "empty" && s.status === "occupied");
+
+// Resolve which lot this page is for exactly once, the same way app/entry.html
+// resolves its lot — read it, and if it's missing, fall back to something real
+// rather than bouncing to another page. Only after that do we subscribe to anything.
+(async function boot() {
+  if (!lotId) {
+    live(false, "Finding a lot…");
+    const snap = await getDocs(collection(db, "lots"));
+    if (snap.empty) { renderNoLots(document.querySelector(".wrap")); return; }
+    lotId = snap.docs[0].id;
+  }
+  rememberLot(lotId);
+  $("editLink").href = withLot("layout.html", lotId);
+  subscribe();
+})();
+
+function subscribe() {
+  onSnapshot(doc(db, "lots", lotId), (s) => {
+    if (!s.exists()) { live(false, "No such lot"); toast(`Lot '${lotId}' doesn't exist. Use Switch lot.`, true); return; }
+    lot = s.data();
+    document.querySelector("[data-brand-title]").textContent = lot.name || lotId;
+    document.querySelector("[data-brand-tag]").textContent = lot.location || "";
+    $("revenue").textContent = "₹" + Number(lot.totalRevenue || 0).toLocaleString("en-IN");
+    mergeFloors(Array.isArray(lot.floors) ? lot.floors : []);
+    draw();
+  }, (e) => { live(false, "Offline"); toast(explain(e), true); });
+
+  onSnapshot(collection(db, "lots", lotId, "slots"), (snap) => {
+    slots = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    mergeFloors([...new Set(slots.map(s => s.floor).filter(Boolean))]);
+    live(true, "Live"); stats(); draw(); inspector();
+  }, (e) => { live(false, "Offline"); toast(explain(e), true); });
+
+  onSnapshot(collection(db, "lots", lotId, "tickets"), (snap) => {
+    tickets = snap.docs.map(d => ({ email: d.id, ...d.data() })); ticketList(); inspector();
+  }, () => { tickets = []; ticketList(); });
+}
+
+function mergeFloors(incoming) {
+  const merged = [...new Set([...floors, ...incoming])];
+  const changed = merged.length !== floors.length;
+  floors = merged.length ? merged : ["Ground"];
+  if (!floor || !floors.includes(floor)) floor = floors[0];
+  if (changed || !$("floorTabs").children.length) {
+    const t = $("floorTabs"); t.innerHTML = "";
+    floors.forEach(f => { const b = document.createElement("button"); b.textContent = f; b.classList.toggle("on", f === floor);
+      b.onclick = () => { floor = f; selected = null; mergeFloors([]); draw(); inspector(); }; t.appendChild(b); });
+  }
+}
+
+function stats() {
+  const total = slots.length, occ = slots.filter(s => s.status === "occupied").length, pct = total ? Math.round(occ/total*100) : 0;
+  $("availCount").textContent = total - occ; $("bookedCount").textContent = occ;
+  $("occBar").style.width = pct + "%"; $("gauge").style.setProperty("--pct", pct); $("gaugePct").textContent = pct + "%";
+  const bf = {};
+  slots.forEach(s => { const f = s.floor || "—"; bf[f] = bf[f] || {t:0,o:0}; bf[f].t++; if (s.status === "occupied") bf[f].o++; });
+  $("floorLines").innerHTML = Object.entries(bf).map(([f,v]) =>
+    `<div class="floorline"><span>${f}</span><span class="bar"><i style="width:${v.t?v.o/v.t*100:0}%"></i></span><span class="n">${v.o}/${v.t}</span></div>`).join("");
+  const mm = slots.filter(mismatch);
+  $("mismatchList").innerHTML = mm.length ? mm.map(s => `<div class="item warn"><span><b>${s.label}</b> <span class="muted">${s.floor} · ${
+    s.sensorState === "car" ? "car present, no booking" : "booked, but bay looks empty"}</span></span>
+    <a class="mini" href="${withLot("cameras.html")}">Review</a></div>`).join("") : `<div class="empty">Nothing flagged.</div>`;
+}
+function ticketList() {
+  if (!tickets.length) { $("ticketList").innerHTML = `<div class="empty">Nobody parked right now.</div>`; return; }
+  $("ticketList").innerHTML = tickets.map(t => {
+    const since = t.entryTime?.toMillis ? new Date(t.entryTime.toMillis()).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "—";
+    return `<div class="item"><span><b>${t.label || (t.slotId||"").split("__").pop()}</b> <span class="muted">${t.email} · in ${since} · ${t.status}${t.amount!=null?` · ₹${t.amount}`:""}</span></span>
+      <button class="mini" data-reset="${t.email}">Release</button></div>`; }).join("");
+  $("ticketList").querySelectorAll("[data-reset]").forEach(b => b.onclick = async () => {
+    if (!confirm(`Release ${b.dataset.reset}'s bay without payment?`)) return;
+    b.disabled = true;
+    try { await resetTicket({ lotId, email: b.dataset.reset }); toast("Bay released."); }
+    catch (e) { toast(explain(e), true); b.disabled = false; }
+  });
+}
+$("clearAllBtn").onclick = async () => {
+  if (!confirm("Free every bay in this lot and delete all open tickets?")) return;
+  $("clearAllBtn").disabled = true;
+  try { const { data } = await clearAllTickets({ lotId }); toast(`Freed ${data.baysFreed} bays, cleared ${data.ticketsCleared} tickets.`); }
+  catch (e) { toast(explain(e), true); }
+  finally { $("clearAllBtn").disabled = false; }
+};
+
+function draw() {
+  if (!floor) return;
+  const stored = lot?.layout?.floors?.[floorKey(floor)];
+  const bp = fromStore(stored) || starter(here().map(s => s.label));
+  let shown = overlay(bp, here());
+  const cam = lot?.cameras?.[floorKey(floor)];
+  if (cam?.cells?.length) shown = overlayCamera(shown, cam.cells);
+  render($("grid"), shown, { selectedId: selected });
+  $("grid").classList.toggle("iso", iso);
+  const drawn = new Set(bp.matrix.flat().filter(isBay).map(c => c.id));
+  const missing = here().filter(s => !drawn.has(s.label));
+  $("unplaced").classList.toggle("hidden", !missing.length);
+  if (missing.length) $("unplaced").innerHTML = `⚠ ${missing.length} bay${missing.length===1?" is":"s are"} not on this floor's plan and can't be booked: ${missing.map(s=>s.label).join(", ")}. <a href="${withLot("layout.html")}">Place them</a>.`;
+}
+$("grid").addEventListener("click", (e) => { const c = e.target.closest(".bp-cell"); if (!c) return; selected = c.dataset.id || null; draw(); inspector(); });
+$("btn2D").onclick = () => { iso = false; $("btn2D").classList.add("on"); $("btn3D").classList.remove("on"); draw(); };
+$("btn3D").onclick = () => { iso = true; $("btn3D").classList.add("on"); $("btn2D").classList.remove("on"); draw(); };
+
+function inspector() {
+  const box = $("inspector");
+  if (!selected) { box.classList.add("hidden"); return; }
+  const d = here().find(s => s.label === selected);
+  box.classList.remove("hidden");
+  if (!d) { box.innerHTML = `<div class="ttl"><span class="id">${selected}</span><span class="badge warn">not in database</span></div><div class="meta">Drawn on the plan but no bay record exists. Add it on the Layout page.</div>`; return; }
+  const t = tickets.find(x => x.slotId === d.id);
+  const since = t?.entryTime?.toMillis ? new Date(t.entryTime.toMillis()).toLocaleString() : null;
+  box.innerHTML = `
+    <div class="ttl"><span class="id">${d.label}</span><span>
+      <span class="badge ${d.status==="occupied"?"taken":"free"}">${d.status}</span>
+      ${d.sensorState ? `<span class="badge ${mismatch(d)?"warn":""}">camera: ${d.sensorState}</span>` : ""}</span></div>
+    <div class="meta">${d.floor} · <code>${d.id}</code><br>${t ? `Booked by <b>${t.email}</b> since ${since} · ${t.status}${t.amount!=null?` · ₹${t.amount}`:""}` : "No ticket on this bay."}</div>
+    <div class="acts">
+      ${t ? `<button class="mini" data-act="release">Release ticket</button>` : ""}
+      <button class="mini" data-act="delete">Delete bay</button>
+    </div>
+    <div class="rename"><input id="renameInput" value="${d.label}"><button class="mini" data-act="rename">Rename</button></div>`;
+  box.querySelectorAll("[data-act]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try {
+      if (b.dataset.act === "release") { if (!confirm(`Release ${t.email}'s ticket without payment?`)) { b.disabled=false; return; } await resetTicket({ lotId, email: t.email }); toast("Released."); }
+      if (b.dataset.act === "delete") { if (!confirm(`Delete bay ${d.label}?`)) { b.disabled=false; return; } await deleteSlot({ lotId, slotId: d.id }); selected = null; toast("Deleted."); }
+      if (b.dataset.act === "rename") { const v = $("renameInput").value.trim().toUpperCase(); if (!v || v === d.label) { b.disabled=false; return; }
+        const { data } = await renameSlot({ lotId, slotId: d.id, newLabel: v }); selected = data.label; toast(`Renamed to ${data.label}. Update the plan if it referenced the old name.`); }
+    } catch (e) { toast(explain(e), true); b.disabled = false; }
+  });
+}
+</script>
+</body>
+</html>

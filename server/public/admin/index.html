@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  .body{padding:24px 22px;}
+  .body h2{font-size:17px; margin-bottom:6px;}
+  .lede{font-size:12.5px; color:var(--muted); margin-bottom:18px; line-height:1.55; max-width:560px;}
+  .lots{display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:12px; margin-bottom:26px;}
+  .lot{border:1.5px solid var(--ink); padding:14px 16px; text-decoration:none; color:var(--ink); display:block; transition:.12s;}
+  .lot:hover{background:var(--line); transform:translateY(-1px);}
+  .lot .n{font-size:15px; font-weight:700;}
+  .lot .l{font-size:11.5px; color:var(--muted); margin:3px 0 8px;}
+  .lot .m{font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--muted);}
+  details.setup{border:1px solid var(--ink); padding:14px 16px;}
+  details.setup summary{font-size:13px; font-weight:700; cursor:pointer;}
+  .floor-row{display:grid; grid-template-columns:1.5fr .6fr .6fr auto; gap:8px; align-items:end; margin-bottom:8px;}
+  .floor-row .x{padding:9px 11px; border:1px solid var(--ink); background:var(--paper); cursor:pointer; font-weight:700; color:var(--ink); font-family:inherit;}
+  .preview{border:1px solid var(--line); background:var(--paper-2); padding:11px 13px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); line-height:1.8; margin-top:12px; white-space:pre-wrap;}
+  .slug{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin-top:5px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media(max-width:640px){.row2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="mark">SP</div><div><h1 data-brand-title>Smart Park</h1><div class="tag" data-brand-tag></div></div></div>
+    <div class="hdr-right"><span class="live-dot" id="liveDot"><i></i> <span id="liveText">Loading</span></span><button class="icon-btn" id="themeBtn">🌙</button></div>
+  </header>
+
+  <div class="body">
+    <h2>Which parking lot is this panel for?</h2>
+    <p class="lede">Each lot has its own control room, layout, cameras and revenue. Pick yours — the address bar will
+    remember it, so bookmark the next page.</p>
+    <div class="lots" id="lots"><div class="empty">Loading…</div></div>
+
+    <details class="setup" id="setup">
+      <summary>Set up a new lot</summary>
+      <p class="lede" style="margin-top:12px;">Name it and list its floors. Bay labels are generated; you place them on the plan afterwards.</p>
+      <div class="row2">
+        <div class="field"><label for="lotName">Lot name</label><input id="lotName" placeholder="Library Block"><div class="slug" id="slugOut">id: —</div></div>
+        <div class="field"><label for="lotLoc">Location</label><input id="lotLoc" placeholder="Gate 3, VIT Vellore"></div>
+      </div>
+      <h3>Floors</h3>
+      <div id="floorRows"></div>
+      <button class="btn" id="addFloorBtn">+ Add floor</button>
+      <div class="preview" id="preview">Add a floor to see the bay labels.</div>
+      <div style="margin-top:14px; display:flex; gap:8px;">
+        <button class="btn primary" id="createBtn">Create lot →</button>
+      </div>
+    </details>
+  </div>
+</div>
+
+<script type="module">
+import { db, functions } from "./js/firebase-config.js";
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
+import { mountAdminChrome, toast, explain, live, rememberLot } from "./js/adminui.js";
+
+mountAdminChrome({ title: "Smart Park — Admin", tag: "Choose a lot", here: "index.html" });
+const $ = (id) => document.getElementById(id);
+const createLot = httpsCallable(functions, "createLot");
+const slugify = (s) => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
+const autoPrefix = (n) => { const t=String(n).trim(); if(!t) return ""; const w=t.split(/\s+/);
+  return (w.length>1 ? w.map(x=>x[0]).join("") : t.slice(0,/\d/.test(t)?2:1)).toUpperCase().replace(/[^A-Z0-9]/g,""); };
+
+async function loadLots() {
+  const snap = await getDocs(collection(db, "lots"));
+  const lots = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  live(true, `${lots.length} lot${lots.length===1?"":"s"}`);
+  if (!lots.length) { $("lots").innerHTML = `<div class="empty">No lots yet — set one up below.</div>`; $("setup").open = true; return; }
+  $("lots").innerHTML = lots.map(l => `
+    <a class="lot" href="control.html?lot=${encodeURIComponent(l.id)}" data-lot="${l.id}">
+      <div class="n">${l.name || l.id}</div>
+      <div class="l">${l.location || "No location set"}</div>
+      <div class="m">${(l.floors||[]).length} floor${(l.floors||[]).length===1?"":"s"} · ₹${Number(l.totalRevenue||0).toLocaleString("en-IN")} to date</div>
+    </a>`).join("");
+  // Remember the pick before the browser navigates, so even a host that drops
+  // the query string on the way to control.html still lands on the right lot.
+  $("lots").querySelectorAll("[data-lot]").forEach(a => a.addEventListener("click", () => rememberLot(a.dataset.lot)));
+}
+
+let floorRows = [];
+const addFloorRow = (name="",count=8,prefix="") => { floorRows.push({name,count,prefix}); renderFloors(); };
+function renderFloors(){
+  $("floorRows").innerHTML = floorRows.map((f,i)=>`
+    <div class="floor-row">
+      <div><label>Floor name</label><input data-i="${i}" data-k="name" value="${f.name}" placeholder="Ground"></div>
+      <div><label>Bays</label><input data-i="${i}" data-k="count" type="number" min="1" max="300" value="${f.count}"></div>
+      <div><label>Prefix</label><input data-i="${i}" data-k="prefix" value="${f.prefix}" placeholder="${autoPrefix(f.name)||"G"}" maxlength="4"></div>
+      <button class="x" data-del="${i}">✕</button></div>`).join("");
+  $("floorRows").querySelectorAll("input").forEach(inp=>inp.oninput=()=>{ const f=floorRows[+inp.dataset.i]; f[inp.dataset.k]=inp.dataset.k==="count"?+inp.value:inp.value; renderPreview(); });
+  $("floorRows").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ floorRows.splice(+b.dataset.del,1); renderFloors(); });
+  renderPreview();
+}
+function renderPreview(){
+  const lines=[]; let total=0;
+  for(const f of floorRows){
+    const name=f.name.trim(); if(!name) continue;
+    const p=(f.prefix.trim()||autoPrefix(name)).toUpperCase().replace(/[^A-Z0-9]/g,"")||"S";
+    const n=Math.max(0,Math.min(300,+f.count||0)); if(!n) continue; total+=n;
+    const head=Array.from({length:Math.min(n,3)},(_,i)=>`${p}-${String(i+1).padStart(2,"0")}`);
+    lines.push(`${name}: ${head.join(", ")}${n>3?` … ${p}-${String(n).padStart(2,"0")}`:""}   (${n})`);
+  }
+  $("preview").textContent = lines.length ? lines.join("\n")+`\n\n${total} bays total` : "Add a floor to see the bay labels.";
+}
+$("addFloorBtn").onclick=()=>addFloorRow();
+$("lotName").oninput=()=>$("slugOut").textContent="id: "+(slugify($("lotName").value)||"—");
+$("createBtn").onclick=async()=>{
+  const name=$("lotName").value.trim(); if(!name) return toast("Give the lot a name.",true);
+  const floors=floorRows.map(f=>({name:f.name.trim(),count:+f.count,prefix:(f.prefix.trim()||autoPrefix(f.name))})).filter(f=>f.name&&f.count>0);
+  if(!floors.length) return toast("Add at least one floor with bays.",true);
+  const pre=floors.map(f=>f.prefix.toUpperCase());
+  if(new Set(pre).size!==pre.length) return toast("Each floor needs its own prefix or the labels collide.",true);
+  const b=$("createBtn"); b.disabled=true; b.textContent="Creating…";
+  try{ const {data}=await createLot({name,location:$("lotLoc").value.trim(),floors});
+    toast(`${data.lotId} created. Opening its layout…`);
+    rememberLot(data.lotId);
+    setTimeout(()=>location.href=`layout.html?lot=${encodeURIComponent(data.lotId)}`,600);
+  }catch(e){ toast(explain(e),true); b.disabled=false; b.textContent="Create lot →"; }
+};
+
+addFloorRow("Ground",8,"G");
+loadLots().catch(e => { live(false,"Offline"); toast(explain(e), true); });
+</script>
+</body>
+</html>

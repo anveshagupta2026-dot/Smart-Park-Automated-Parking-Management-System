@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Layout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  /* -------- stage 0 -------- */
+  .cols{display:grid; grid-template-columns:1fr 1fr;}
+  @media(max-width:860px){.cols{grid-template-columns:1fr;}}
+  .col{padding:22px; border-right:1px solid var(--ink);}
+  .col:last-child{border-right:none;}
+  @media(max-width:860px){.col{border-right:none; border-bottom:1px solid var(--ink);}}
+  .col h2{font-size:16px; margin-bottom:4px;}
+  .lede{font-size:12.5px; color:var(--muted); margin-bottom:18px; line-height:1.55;}
+  .slug{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin-top:5px;}
+  .floor-row{display:grid; grid-template-columns:1.5fr .6fr .6fr auto; gap:8px; align-items:end; margin-bottom:8px;}
+  @media(max-width:540px){.floor-row{grid-template-columns:1fr 1fr;}}
+  .floor-row .x{padding:9px 11px; border:1px solid var(--ink); background:var(--paper); cursor:pointer; font-weight:700; color:var(--ink); font-family:inherit;}
+  .preview{border:1px solid var(--line); background:var(--paper-2); padding:11px 13px; font-family:'JetBrains Mono',monospace;
+    font-size:11px; color:var(--muted); line-height:1.8; margin-top:12px; max-height:140px; overflow:auto; white-space:pre-wrap;}
+  .btn-row{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; align-items:center;}
+  .lot-card{border:1px solid var(--ink); padding:13px 15px; margin-bottom:10px;}
+  .lot-card .t{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .lot-card .n{font-size:14.5px; font-weight:700;}
+  .lot-card .id{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted);}
+  .lot-card .meta{font-size:11.5px; color:var(--muted); margin:6px 0 10px;}
+  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:11px;}
+  .chip{border:1px solid var(--line); padding:3px 8px; font-size:11px; font-family:'JetBrains Mono',monospace;}
+  .chip.occ{border-color:var(--taken); color:var(--taken);}
+
+  /* -------- stage 1 -------- */
+  .ed-top{display:flex; align-items:center; gap:12px; padding:11px 18px; border-top:1px solid var(--ink);
+    border-bottom:1px solid var(--ink); flex-wrap:wrap;}
+  .ed-top .name{font-size:15px; font-weight:700;}
+  .ed-top .where{font-size:11px; color:var(--muted);}
+  .ed-top .grow{flex:1;}
+  .seg{display:inline-flex; border:1.5px solid var(--ink); overflow:hidden;}
+  .seg button{padding:6px 12px; border:none; background:transparent; font-family:inherit; font-size:11.5px;
+    font-weight:700; color:var(--ink); cursor:pointer; border-right:1px solid var(--ink);}
+  .seg button:last-child{border-right:none;}
+  .seg button.on{background:var(--ink); color:var(--paper);}
+  .zoom{display:flex; align-items:center; gap:7px; font-size:11px; color:var(--muted);}
+  .zoom input{width:90px; accent-color:var(--route);}
+
+  .ed-body{display:grid; grid-template-columns:238px 1fr 218px;}
+  @media(max-width:1000px){.ed-body{grid-template-columns:1fr;}}
+
+  /* palette */
+  .palette{border-right:1px solid var(--ink); overflow:auto; max-height:640px;}
+  @media(max-width:1000px){.palette{border-right:none; border-bottom:1px solid var(--ink); max-height:280px;}}
+  .pgroup{border-bottom:1px solid var(--line);}
+  .pgroup > summary{padding:9px 14px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--muted); cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px;}
+  .pgroup > summary::-webkit-details-marker{display:none;}
+  .pgroup > summary::before{content:"▸"; font-size:9px; transition:transform .15s;}
+  .pgroup[open] > summary::before{transform:rotate(90deg);}
+  .pitems{display:grid; grid-template-columns:1fr 1fr; gap:5px; padding:0 10px 11px;}
+  .pitem{display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border:1.5px solid transparent;
+    background:color-mix(in srgb,var(--ink) 4%,transparent); cursor:grab; font-family:inherit; color:var(--ink); text-align:center;}
+  .pitem:hover{border-color:var(--ink);}
+  .pitem.on{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .pitem svg{width:22px; height:22px;}
+  .pitem .nm{font-size:9.5px; font-weight:600; line-height:1.15;}
+  .pitem.tint-free svg{color:var(--free);} .pitem.tint-route svg{color:var(--route);}
+  .pitem.tint-warn svg{color:var(--warn);} .pitem.tint-taken svg{color:var(--taken);}
+  .pitem.tint-muted svg{color:var(--muted);} .pitem.tint-lane svg{color:var(--lane);}
+  .pitem.on svg{color:var(--paper) !important;}
+
+  /* canvas + edge buttons */
+  .canvas-wrap{padding:14px; background:var(--paper-2); overflow:auto; display:flex; align-items:center; justify-content:center; min-height:440px; perspective:1100px;}
+  .stagearea{display:grid; grid-template-columns:auto 1fr auto; grid-template-rows:auto 1fr auto; gap:5px; align-items:center; justify-items:center;
+    width:100%; max-width:calc(var(--cw,620px) + 60px);}
+  .edge{display:flex; gap:3px;}
+  .edge.v{flex-direction:column;}
+  .ebtn{width:22px; height:22px; border:1px solid var(--line); background:var(--paper); color:var(--muted);
+    font-family:inherit; font-size:12px; font-weight:700; line-height:1; cursor:pointer; padding:0;}
+  .ebtn:hover{border-color:var(--ink); color:var(--ink); background:var(--line);}
+  .canvas-inner{width:100%; grid-column:2; grid-row:2;}
+
+  /* right panel */
+  .side{border-left:1px solid var(--ink); padding:14px; display:flex; flex-direction:column; gap:14px; overflow:auto; max-height:640px;}
+  @media(max-width:1000px){.side{border-left:none; border-top:1px solid var(--ink);}}
+  .side h3{margin:0 0 8px;}
+  .prog{border:1px solid var(--ink); padding:11px 12px;}
+  .prog .big{font-size:21px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .prog .sub{font-size:11px; color:var(--muted);}
+  .prog .track{height:6px; background:var(--line); margin-top:8px;}
+  .prog .fill{height:100%; background:var(--free); width:0%; transition:width .3s;}
+  .bay-chips{display:flex; flex-wrap:wrap; gap:5px; max-height:184px; overflow:auto;}
+  .bay-chip{border:1.5px solid var(--free); color:var(--free); background:var(--free-bg); padding:4px 7px;
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; cursor:grab;}
+  .bay-chip:hover{background:var(--free); color:var(--paper);}
+  .bay-chip.armed{background:var(--ink); border-color:var(--ink); color:var(--paper);}
+  .bay-chip.placed{border-color:var(--line); color:var(--muted); background:transparent; opacity:.5;}
+  .bay-chip.placed:hover{opacity:1; background:var(--line); color:var(--ink);}
+  .note{font-size:11px; color:var(--muted); line-height:1.6;}
+  .modeline{border:1px solid var(--ink); padding:9px 11px; font-size:11.5px; display:flex; align-items:center; gap:8px;}
+  .modeline .dot{width:8px; height:8px; border-radius:50%; background:var(--route); flex:none;}
+  .modeline.move .dot{background:var(--muted);}
+
+  .ed-foot{display:flex; align-items:center; gap:9px; padding:12px 18px; border-top:1px solid var(--ink); flex-wrap:wrap;}
+  .ed-foot .grow{flex:1;}
+  .dirty-dot{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted);}
+  .dirty-dot b{width:7px; height:7px; border-radius:50%; background:var(--line);}
+  .dirty-dot.on b{background:var(--warn);} .dirty-dot.on{color:var(--warn);}
+  .stage{display:none;} .stage.on{display:block;}
+
+  /* drag ghost */
+  #ghost{position:fixed; pointer-events:none; z-index:99; width:46px; height:46px; display:none;
+    align-items:center; justify-content:center; border:1.5px solid var(--ink); background:var(--paper);
+    box-shadow:0 6px 16px var(--shadow); border-radius:3px; font:700 10px/1 'JetBrains Mono',monospace; color:var(--ink);}
+  #ghost svg{width:24px; height:24px;}
+  #ghost.show{display:flex;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark">SP</div>
+      <div><h1 data-brand-title>Smart Park</h1><div class="tag" data-brand-tag></div></div>
+    </div>
+    <div class="hdr-right">
+      <span class="live-dot" id="liveDot"><i></i> <span id="liveText">Ready</span></span>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+    </div>
+  </header>
+  <nav class="navbar">
+    <a href="control.html">Control Room</a>
+    <a href="layout.html">Layout</a>
+    <a href="cameras.html">Cameras</a>
+    <a href="qr.html">QR Codes</a>
+    <a href="revenue.html">Revenue</a>
+    <span class="spacer"></span>
+    <a href="index.html" class="switch">switch lot</a>
+  </nav>
+
+  <!-- ============ STAGE 0: floors of this lot ============ -->
+  <div class="stage on" id="stage0">
+    <div class="cols">
+      <div class="col">
+        <h2>Floors</h2>
+        <p class="lede">Each floor has its own plan. Open one to draw it, or add bays to it.</p>
+        <div id="floorList"><div class="empty">Loading…</div></div>
+      </div>
+      <div class="col">
+        <h2>Add a floor</h2>
+        <p class="lede">Give it a name, how many bays, and a label prefix. Bays are created in Firestore immediately.</p>
+        <div class="field"><label for="nfName">Floor name</label><input id="nfName" placeholder="Level 3"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div class="field"><label for="nfCount">Bays</label><input id="nfCount" type="number" min="0" max="300" value="8"></div>
+          <div class="field"><label for="nfPrefix">Prefix</label><input id="nfPrefix" placeholder="L3" maxlength="4"></div>
+        </div>
+        <div class="preview" id="nfPreview">Type a name to preview labels.</div>
+        <div class="btn-row"><button class="btn primary" id="addFloorBtn">Add floor</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STAGE 1 ============ -->
+  <div class="stage" id="stage1">
+    <div class="ed-top">
+      <div><div class="name" id="edName">Layout</div><div class="where" id="edWhere">Drag from the palette · drag pieces to move · right-drag erases</div></div>
+      <div class="seg" id="floorTabs"></div>
+      <div class="grow"></div>
+      <div class="zoom"><span>Zoom</span><input type="range" id="zoom" min="320" max="1000" step="20" value="620" aria-label="Zoom"></div>
+      <div class="seg"><button id="btn2D" class="on">Flat</button><button id="btn3D">Isometric</button></div>
+    </div>
+
+    <div class="ed-body">
+      <div class="palette" id="palette"></div>
+
+      <div class="canvas-wrap">
+        <div class="stagearea" id="stagearea">
+          <div style="grid-column:2; grid-row:1;" class="edge">
+            <button class="ebtn" data-grow="top" title="Add row on top">＋</button>
+            <button class="ebtn" data-shrink="top" title="Remove top row">－</button>
+          </div>
+          <div style="grid-column:1; grid-row:2;" class="edge v">
+            <button class="ebtn" data-grow="left" title="Add column on the left">＋</button>
+            <button class="ebtn" data-shrink="left" title="Remove left column">－</button>
+          </div>
+          <div class="canvas-inner"><div class="bp-grid" id="grid"></div></div>
+          <div style="grid-column:3; grid-row:2;" class="edge v">
+            <button class="ebtn" data-grow="right" title="Add column on the right">＋</button>
+            <button class="ebtn" data-shrink="right" title="Remove right column">－</button>
+          </div>
+          <div style="grid-column:2; grid-row:3;" class="edge">
+            <button class="ebtn" data-grow="bottom" title="Add row at the bottom">＋</button>
+            <button class="ebtn" data-shrink="bottom" title="Remove bottom row">－</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="modeline" id="modeline"><span class="dot"></span><span id="modeText">Move mode</span></div>
+        <div class="prog">
+          <div class="big" id="progNum">0 / 0</div>
+          <div class="sub">bays placed on this floor</div>
+          <div class="track"><div class="fill" id="progFill"></div></div>
+        </div>
+        <div>
+          <h3>Bays</h3>
+          <div class="bay-chips" id="bayChips"></div>
+          <p class="note" id="chipNote">Drag a bay onto the grid, or click it then click a cell.</p>
+        </div>
+        <div>
+          <h3>Quick actions</h3>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <button class="btn" id="autofillBtn">Fill empty cells with bays</button>
+            <button class="btn" id="startOverBtn">Start from template</button>
+            <button class="btn danger" id="wipeBtn">Clear the grid</button>
+          </div>
+        </div>
+        <p class="note"><b>Drag</b> from the palette to place. <b>Click</b> an item to keep painting it.
+        With nothing selected, drag a piece to move it. <b>Right-drag</b> erases.
+        <b>R</b> rotates, <b>Esc</b> deselects, <b>⌘/Ctrl+Z</b> undoes.</p>
+      </aside>
+    </div>
+
+    <div class="ed-foot">
+      <button class="btn" id="undoBtn" disabled>↶ Undo</button>
+      <button class="btn" id="redoBtn" disabled>↷ Redo</button>
+      <span class="dirty-dot" id="dirtyDot"><b></b> <span id="dirtyText">Saved</span></span>
+      <div class="grow"></div>
+      <button class="btn" id="backBtn">← Floors</button>
+      <a class="btn" id="toControl" href="control.html">Control Room</a>
+      <button class="btn primary" id="saveBtn" disabled>Save layout</button>
+    </div>
+  </div>
+</div>
+<div id="ghost"></div>
+
+<script type="module">
+import { db, functions } from "./js/firebase-config.js";
+import { doc, getDoc, collection, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
+import { CATALOG, GROUPS, el as catEl, isBay } from "./js/catalog.js";
+import { starter, blank, fromStore, toStore, clone, grow, shrink, overlay, render, BP_CSS } from "./js/blueprint.js";
+import { mountAdminChrome, toast, explain, live, getLotId, rememberLot, withLot, renderNoLots } from "./js/adminui.js";
+
+mountAdminChrome({ title:"Layout", tag:"", here:"layout.html" });
+document.head.appendChild(Object.assign(document.createElement("style"), { textContent: BP_CSS }));
+
+const $ = (id) => document.getElementById(id);
+const call = (n) => httpsCallable(functions, n);
+const addFloor = call("addFloor"), addSlots = call("addSlots"), updateLotLayout = call("updateLotLayout");
+
+const autoPrefix = (n) => { const t=String(n).trim(); if(!t) return ""; const w=t.split(/\s+/);
+  return (w.length>1 ? w.map(x=>x[0]).join("") : t.slice(0,/\d/.test(t)?2:1)).toUpperCase().replace(/[^A-Z0-9]/g,""); };
+
+/* ================= this lot ================= */
+let lot = null, slotsAll = [], unsubLot = null, unsubSlots = null;
+const floorKey = (f) => String(f).replace(/[.~*/[\]]/g, "_");
+let lotId = getLotId();
+
+function watchLot(){
+  unsubLot = onSnapshot(doc(db,"lots",lotId),(snap)=>{
+    if(!snap.exists()){ live(false,"No such lot"); toast(`Lot '${lotId}' doesn't exist.`,true); return; }
+    lot = snap.data();
+    document.querySelector("[data-brand-title]").textContent = lot.name || lotId;
+    document.querySelector("[data-brand-tag]").textContent = lot.location || "";
+    ed.lot = lot; renderFloorList();
+    if(ed.floor && !ed.dirty){ const stored=lot?.layout?.floors?.[floorKey(ed.floor)]; if(stored) { ed.bp=fromStore(stored); paint(); } }
+  },(e)=>{ live(false,"Offline"); toast(explain(e),true); });
+  unsubSlots = onSnapshot(collection(db,"lots",lotId,"slots"),(snap)=>{
+    slotsAll = snap.docs.map(d=>({id:d.id,...d.data()}));
+    ed.slots = slotsAll; live(true,"Live"); renderFloorList(); if(ed.floor) paint();
+  },(e)=>{ live(false,"Offline"); toast(explain(e),true); });
+}
+function floorsOf(){ return [...new Set([...(lot?.floors||[]), ...slotsAll.map(s=>s.floor).filter(Boolean)])]; }
+function renderFloorList(){
+  const fl = floorsOf();
+  if(!fl.length){ $("floorList").innerHTML=`<div class="empty">No floors yet. Add one on the right.</div>`; return; }
+  $("floorList").innerHTML = fl.map(f=>{
+    const bays = slotsAll.filter(s=>s.floor===f);
+    const occ = bays.filter(s=>s.status==="occupied").length;
+    const plan = lot?.layout?.floors?.[floorKey(f)];
+    const drawn = plan ? (plan.matrix||[]).flatMap(r=>r.c||[]).filter(c=>c&&c.el&&c.el.startsWith("bay")).length : 0;
+    return `<div class="lot-card">
+      <div class="t"><span class="n">${f}</span><span class="id">${plan?`${plan.cols}×${plan.rows} grid`:"no plan yet"}</span></div>
+      <div class="chips"><span class="chip">${bays.length} bays</span>${occ?`<span class="chip occ">${occ} in use</span>`:""}
+        <span class="chip ${drawn<bays.length?"occ":""}">${drawn} of ${bays.length} placed</span></div>
+      <div style="display:flex;gap:8px;align-items:end;">
+        <div class="field" style="margin:0;width:78px;"><label>Add bays</label><input data-c="${f}" type="number" min="1" max="300" value="4"></div>
+        <button class="btn" data-add="${f}">Add</button>
+        <div style="flex:1"></div>
+        <button class="btn primary" data-edit="${f}">Draw layout</button>
+      </div></div>`;
+  }).join("");
+  $("floorList").querySelectorAll("[data-add]").forEach(b=>b.onclick=async()=>{
+    const f=b.dataset.add, count=+$("floorList").querySelector(`[data-c="${CSS.escape(f)}"]`)?.value;
+    if(!count) return toast("Enter a count.",true);
+    b.disabled=true;
+    try{ const {data}=await addSlots({lotId,floor:f,count}); toast(data.created.length?`Added ${data.created.join(", ")}.`:"Those labels already exist."); }
+    catch(e){ toast(explain(e),true); } finally{ b.disabled=false; }
+  });
+  $("floorList").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEditor(b.dataset.edit));
+}
+$("nfName").oninput=()=>{ $("nfPrefix").placeholder=autoPrefix($("nfName").value)||"X"; nfPreview(); };
+$("nfCount").oninput=nfPreview; $("nfPrefix").oninput=nfPreview;
+function nfPreview(){
+  const name=$("nfName").value.trim(), n=Math.max(0,Math.min(300,+$("nfCount").value||0));
+  const p=($("nfPrefix").value.trim()||autoPrefix(name)).toUpperCase().replace(/[^A-Z0-9]/g,"")||"X";
+  $("nfPreview").textContent = !name ? "Type a name to preview labels." : n ? `${name}: ${p}-01 … ${p}-${String(n).padStart(2,"0")}   (${n} bays)` : `${name}: no bays yet`;
+}
+$("addFloorBtn").onclick=async()=>{
+  const name=$("nfName").value.trim(); if(!name) return toast("Name the floor.",true);
+  const b=$("addFloorBtn"); b.disabled=true;
+  try{ const {data}=await addFloor({lotId,floor:name,count:+$("nfCount").value||0,prefix:$("nfPrefix").value.trim()||autoPrefix(name)});
+    toast(`${data.floor} added${data.created.length?` with ${data.created.length} bays`:""}.`); $("nfName").value=""; nfPreview(); }
+  catch(e){ toast(explain(e),true); } finally{ b.disabled=false; }
+};
+
+/* ================= STAGE 1 ================= */
+const ed = { lotId:null, lot:null, floors:[], floor:null, slots:[], bp:null, dirty:false,
+             brush:null, armedBay:null, iso:false, undo:[], redo:[] };
+
+const showStage=(i)=>{ $("stage0").classList.toggle("on",i===0); $("stage1").classList.toggle("on",i===1); window.scrollTo({top:0,behavior:"smooth"}); };
+const here = () => ed.slots.filter(s=>s.floor===ed.floor);
+const placedIds = () => new Set(ed.bp.matrix.flat().filter(isBay).map(c=>c.id));
+const confirmDiscard = () => !ed.dirty || confirm("Discard unsaved layout changes?");
+
+function openEditor(f){
+  ed.lotId=lotId; ed.dirty=false; ed.undo=[]; ed.redo=[]; ed.brush=null; ed.armedBay=null;
+  ed.lot=lot||{}; ed.slots=slotsAll; ed.floors=floorsOf(); if(!ed.floors.length) ed.floors=[f];
+  ed.floor=ed.floors.includes(f)?f:ed.floors[0];
+  $("edName").textContent=`${lot?.name||lotId} — ${ed.floor}`;
+  $("toControl").href=withLot("control.html");
+  loadFloor(); buildFloorTabs(); buildPalette(); showStage(1);
+}
+function loadFloor(){
+  $("edName").textContent=`${lot?.name||lotId} — ${ed.floor}`;
+  const stored=ed.lot?.layout?.floors?.[floorKey(ed.floor)];
+  ed.bp = fromStore(stored) || starter(here().map(s=>s.label));
+  ed.undo=[]; ed.redo=[]; ed.dirty=false; ed.armedBay=null; paint();
+}
+function buildFloorTabs(){
+  const t=$("floorTabs"); t.innerHTML="";
+  ed.floors.forEach(f=>{ const b=document.createElement("button"); b.textContent=f; b.classList.toggle("on",f===ed.floor);
+    b.onclick=()=>{ if(!confirmDiscard()) return; ed.floor=f; loadFloor(); buildFloorTabs(); }; t.appendChild(b); });
+}
+
+/* ---- palette ---- */
+function buildPalette(){
+  const p=$("palette"); p.innerHTML="";
+  for(const grp of GROUPS){
+    const d=document.createElement("details"); d.className="pgroup"; d.open=true;
+    const s=document.createElement("summary"); s.textContent=grp; d.appendChild(s);
+    const box=document.createElement("div"); box.className="pitems";
+    for(const [id,def] of Object.entries(CATALOG)){
+      if(def.group!==grp) continue;
+      const b=document.createElement("button");
+      b.className=`pitem tint-${def.tint||"ink"}`; b.dataset.el=id;
+      b.innerHTML=`${def.glyph}<span class="nm">${def.name}</span>`;
+      box.appendChild(b);
+    }
+    d.appendChild(box); p.appendChild(d);
+  }
+  syncPalette();
+}
+function syncPalette(){
+  $("palette").querySelectorAll(".pitem").forEach(b=>b.classList.toggle("on", b.dataset.el===ed.brush));
+}
+function setBrush(id){
+  ed.brush = ed.brush===id ? null : id;
+  if(ed.brush && !catEl(ed.brush)?.consumes) ed.armedBay=null;
+  syncPalette(); paint();
+}
+
+/* ---- paint ---- */
+function paint(){
+  if(!ed.bp) return;
+  render($("grid"), overlay(ed.bp, here(), { autoPlace:false }), {});
+  $("grid").classList.toggle("iso", ed.iso);
+  $("grid").classList.toggle("editing", !!ed.brush);
+  $("grid").classList.toggle("moving", !ed.brush);
+
+  const placed=placedIds(), all=here();
+  const n=all.filter(s=>placed.has(s.label)).length;
+  $("progNum").textContent=`${n} / ${all.length}`;
+  $("progFill").style.width=all.length?(n/all.length*100)+"%":"0%";
+
+  $("bayChips").innerHTML = all.map(s=>{
+    const isPlaced=placed.has(s.label);
+    return `<button class="bay-chip ${isPlaced?"placed":""} ${ed.armedBay===s.label?"armed":""}" data-bay="${s.label}" draggable="false">${s.label}</button>`;
+  }).join("") || `<span class="note">No bays on this floor yet.</span>`;
+
+  const def = ed.brush ? catEl(ed.brush) : null;
+  $("modeline").classList.toggle("move", !def);
+  $("modeText").innerHTML = def
+    ? `Placing <b>${def.name}</b>${def.pen?" — drag to draw":""}`
+    : `Move mode — drag any piece`;
+  $("chipNote").textContent = ed.armedBay
+    ? `${ed.armedBay} is next — click a cell to drop it.`
+    : "Drag a bay onto the grid, or click it then click a cell.";
+
+  $("saveBtn").disabled=!ed.dirty;
+  $("undoBtn").disabled=!ed.undo.length;
+  $("redoBtn").disabled=!ed.redo.length;
+  $("dirtyDot").classList.toggle("on",ed.dirty);
+  $("dirtyText").textContent=ed.dirty?"Unsaved changes":"Saved";
+}
+
+/* ---- history ---- */
+const pushUndo=()=>{ ed.undo.push(clone(ed.bp)); if(ed.undo.length>60) ed.undo.shift(); ed.redo=[]; };
+$("undoBtn").onclick=()=>{ if(!ed.undo.length) return; ed.redo.push(clone(ed.bp)); ed.bp=ed.undo.pop(); ed.dirty=true; paint(); };
+$("redoBtn").onclick=()=>{ if(!ed.redo.length) return; ed.undo.push(clone(ed.bp)); ed.bp=ed.redo.pop(); ed.dirty=true; paint(); };
+
+/* ---- placing ---- */
+function nextBayLabel(){
+  const placed=placedIds();
+  if(ed.armedBay && !placed.has(ed.armedBay)) return ed.armedBay;
+  return here().find(s=>!placed.has(s.label))?.label ?? null;
+}
+function placeAt(r,c,elId,opts={}){
+  const m=ed.bp.matrix;
+  if(r<0||c<0||r>=ed.bp.rows||c>=ed.bp.cols) return false;
+  const def=catEl(elId); if(!def) return false;
+  const before=JSON.stringify(m[r][c]);
+
+  if(def.consumes){
+    const label = opts.label ?? nextBayLabel();
+    if(!label){ toast("Every bay on this floor is placed. Add more from the lots list.",true); return false; }
+    if(isBay(m[r][c]) && m[r][c].id===label && m[r][c].el===elId) return false;
+    // moving onto a cell that holds another bay would orphan it — refuse
+    if(isBay(m[r][c]) && m[r][c].id!==label) return false;
+    m[r][c]={ el:elId, id:label, rot:opts.rot??0 };
+    if(ed.armedBay===label) ed.armedBay=null;
+  } else {
+    if(def.unique){
+      ed.bp.matrix.forEach((row,rr)=>row.forEach((cc,ccI)=>{ if(cc?.el===elId) ed.bp.matrix[rr][ccI]=null; }));
+    }
+    m[r][c]={ el:elId, ...(opts.rot?{rot:opts.rot}:{}), ...(opts.text?{text:opts.text}:{}) };
+  }
+  return JSON.stringify(m[r][c])!==before;
+}
+
+/* ---- pointer: paint / move / erase on the grid ---- */
+let stroke=null, lift=null;
+const cellFromPoint=(x,y)=>document.elementFromPoint(x,y)?.closest(".bp-cell");
+
+$("grid").addEventListener("contextmenu",e=>e.preventDefault());
+$("grid").addEventListener("pointerdown",(e)=>{
+  const cell=e.target.closest(".bp-cell"); if(!cell) return;
+  const r=+cell.dataset.r, c=+cell.dataset.c;
+  const erasing = e.button===2 || e.altKey;
+  e.preventDefault();
+
+  if(erasing){
+    pushUndo(); stroke={erase:true,touched:new Set(),changed:false};
+    $("grid").setPointerCapture(e.pointerId); strokeAt(r,c); return;
+  }
+  if(ed.brush){
+    pushUndo(); stroke={erase:false,touched:new Set(),changed:false};
+    $("grid").setPointerCapture(e.pointerId); strokeAt(r,c); return;
+  }
+  // move mode: pick the piece up
+  const item=ed.bp.matrix[r][c]; if(!item) return;
+  pushUndo();
+  lift={ from:{r,c}, cell:{...item}, moved:false };
+  cell.classList.add("lifting");
+  showGhost(item);
+  moveGhost(e.clientX,e.clientY);
+  $("grid").setPointerCapture(e.pointerId);
+});
+$("grid").addEventListener("pointermove",(e)=>{
+  if(stroke){
+    const el=cellFromPoint(e.clientX,e.clientY);
+    if(el) strokeAt(+el.dataset.r,+el.dataset.c);
+    return;
+  }
+  if(lift){
+    lift.moved=true; moveGhost(e.clientX,e.clientY);
+    document.querySelectorAll(".bp-cell.drop-ok").forEach(x=>x.classList.remove("drop-ok"));
+    const el=cellFromPoint(e.clientX,e.clientY);
+    if(el) el.classList.add("drop-ok");
+  }
+});
+function strokeAt(r,c){
+  const k=r+"_"+c; if(stroke.touched.has(k)) return; stroke.touched.add(k);
+  let changed;
+  if(stroke.erase){ const b=JSON.stringify(ed.bp.matrix[r][c]); ed.bp.matrix[r][c]=null; changed=b!=="null"&&b!==undefined; }
+  else changed=placeAt(r,c,ed.brush);
+  if(changed){ stroke.changed=true; ed.dirty=true; }
+  paint();
+}
+function endPointer(e){
+  if(stroke){ if(!stroke.changed) ed.undo.pop(); stroke=null; paint(); return; }
+  if(lift){
+    hideGhost();
+    document.querySelectorAll(".bp-cell.drop-ok").forEach(x=>x.classList.remove("drop-ok"));
+    const el = e ? cellFromPoint(e.clientX,e.clientY) : null;
+    let ok=false;
+    if(el){
+      const r=+el.dataset.r, c=+el.dataset.c;
+      if(!(r===lift.from.r && c===lift.from.c)){
+        const target=ed.bp.matrix[r][c];
+        ed.bp.matrix[lift.from.r][lift.from.c]=target||null;   // swap
+        ed.bp.matrix[r][c]=lift.cell;
+        ok=true; ed.dirty=true;
+      }
+    }
+    if(!ok) ed.undo.pop();
+    lift=null; paint();
+  }
+}
+$("grid").addEventListener("pointerup",endPointer);
+$("grid").addEventListener("pointercancel",()=>endPointer(null));
+
+/* ---- drag from palette / bay chips ---- */
+let dragSrc=null;
+function showGhost(cellOrDef){
+  const gh=$("ghost");
+  if(cellOrDef.el || cellOrDef.id){
+    const def=catEl(cellOrDef.el);
+    gh.innerHTML = def ? def.glyph + (cellOrDef.id?`<span style="position:absolute;bottom:2px;font-size:8px">${cellOrDef.id}</span>`:"") : "";
+  } else gh.innerHTML = cellOrDef.glyph || "";
+  gh.classList.add("show");
+}
+const moveGhost=(x,y)=>{ const g=$("ghost"); g.style.left=(x-23)+"px"; g.style.top=(y-23)+"px"; };
+const hideGhost=()=>$("ghost").classList.remove("show");
+
+function beginPaletteDrag(e, payload){
+  dragSrc = { ...payload, moved:false };
+  showGhost(payload.preview); moveGhost(e.clientX,e.clientY);
+  const mv=(ev)=>{
+    dragSrc.moved=true; moveGhost(ev.clientX,ev.clientY);
+    document.querySelectorAll(".bp-cell.drop-ok").forEach(x=>x.classList.remove("drop-ok"));
+    const el=cellFromPoint(ev.clientX,ev.clientY); if(el) el.classList.add("drop-ok");
+  };
+  const up=(ev)=>{
+    window.removeEventListener("pointermove",mv); window.removeEventListener("pointerup",up);
+    hideGhost(); document.querySelectorAll(".bp-cell.drop-ok").forEach(x=>x.classList.remove("drop-ok"));
+    const el=cellFromPoint(ev.clientX,ev.clientY);
+    if(dragSrc.moved && el){
+      pushUndo();
+      const ok=placeAt(+el.dataset.r,+el.dataset.c,dragSrc.el,{label:dragSrc.label});
+      if(ok) ed.dirty=true; else ed.undo.pop();
+      paint();
+    } else if(!dragSrc.moved){
+      dragSrc.onClick?.();
+    }
+    dragSrc=null;
+  };
+  window.addEventListener("pointermove",mv); window.addEventListener("pointerup",up);
+}
+$("palette").addEventListener("pointerdown",(e)=>{
+  const b=e.target.closest(".pitem"); if(!b) return; e.preventDefault();
+  const id=b.dataset.el, def=catEl(id);
+  beginPaletteDrag(e, { el:id, preview:{el:id}, onClick:()=>setBrush(id) });
+});
+$("bayChips").addEventListener("pointerdown",(e)=>{
+  const b=e.target.closest(".bay-chip"); if(!b) return; e.preventDefault();
+  const label=b.dataset.bay;
+  const elId = ed.brush && catEl(ed.brush)?.consumes ? ed.brush : "bay";
+  beginPaletteDrag(e, { el:elId, label, preview:{el:elId,id:label},
+    onClick:()=>{ ed.armedBay = ed.armedBay===label?null:label; if(ed.armedBay && !catEl(ed.brush||"")?.consumes) setBrush("bay"); else paint(); } });
+});
+
+/* ---- keyboard ---- */
+document.addEventListener("keydown",(e)=>{
+  if(!$("stage1").classList.contains("on") || e.target.matches("input,select,textarea")) return;
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="z"){ e.preventDefault(); (e.shiftKey?$("redoBtn"):$("undoBtn")).click(); return; }
+  if(e.key==="Escape"){ ed.brush=null; ed.armedBay=null; syncPalette(); paint(); }
+  if(e.key.toLowerCase()==="r"){
+    // rotate the last hovered cell, or the brush default
+    const el=document.querySelector(".bp-cell:hover"); if(!el) return;
+    const r=+el.dataset.r,c=+el.dataset.c,item=ed.bp.matrix[r][c];
+    if(!item || !catEl(item.el)?.rotatable) return;
+    pushUndo(); item.rot=((item.rot||0)+90)%360; ed.dirty=true; paint();
+  }
+});
+
+/* ---- view, grid growth, quick actions ---- */
+$("btn2D").onclick=()=>{ ed.iso=false; $("btn2D").classList.add("on"); $("btn3D").classList.remove("on"); paint(); };
+$("btn3D").onclick=()=>{ ed.iso=true; $("btn3D").classList.add("on"); $("btn2D").classList.remove("on"); paint(); };
+$("zoom").oninput=()=>$("stagearea").style.setProperty("--cw",$("zoom").value+"px");
+document.querySelectorAll("[data-grow]").forEach(b=>b.onclick=()=>{
+  if(ed.bp.cols>=26||ed.bp.rows>=26) return toast("That's as big as the grid goes.",true);
+  pushUndo(); ed.bp=grow(ed.bp,b.dataset.grow); ed.dirty=true; paint(); });
+document.querySelectorAll("[data-shrink]").forEach(b=>b.onclick=()=>{
+  const before=ed.bp.cols+"x"+ed.bp.rows;
+  pushUndo(); ed.bp=shrink(ed.bp,b.dataset.shrink);
+  if(before===ed.bp.cols+"x"+ed.bp.rows){ ed.undo.pop(); return; }
+  ed.dirty=true; paint(); });
+
+$("autofillBtn").onclick=()=>{
+  const placed=placedIds(), free=here().filter(s=>!placed.has(s.label));
+  if(!free.length) return toast("Every bay is already placed.");
+  pushUndo(); let n=0;
+  outer: for(let r=0;r<ed.bp.rows;r++) for(let c=0;c<ed.bp.cols;c++)
+    if(!ed.bp.matrix[r][c]){ ed.bp.matrix[r][c]={el:"bay",id:free[n++].label}; if(n>=free.length) break outer; }
+  ed.dirty=true; paint();
+  toast(n<free.length?`Placed ${n}. Grid is full — grow it for the rest.`:`Placed ${n} bay${n===1?"":"s"}.`);
+};
+$("startOverBtn").onclick=()=>{ if(!confirm("Replace this floor's plan with the generated template?")) return;
+  pushUndo(); ed.bp=starter(here().map(s=>s.label),ed.bp.cols,ed.bp.rows); ed.dirty=true; paint(); };
+$("wipeBtn").onclick=()=>{ if(!confirm("Clear every cell on this floor?")) return;
+  pushUndo(); ed.bp=blank(ed.bp.cols,ed.bp.rows); ed.dirty=true; paint(); };
+
+/* ---- save / nav ---- */
+$("saveBtn").onclick=async()=>{
+  const b=$("saveBtn"); b.disabled=true; b.textContent="Saving…";
+  try{ await updateLotLayout({lotId:ed.lotId,floor:ed.floor,layout:toStore(ed.bp)});
+    ed.dirty=false; toast(`${ed.floor} saved. Drivers see it immediately.`); }
+  catch(e){ toast(explain(e),true); }
+  finally{ b.textContent="Save layout"; paint(); }
+};
+$("backBtn").onclick=()=>{ if(!confirmDiscard()) return; ed.dirty=false; ed.floor=null; showStage(0); };
+window.addEventListener("beforeunload",(e)=>{ if(ed.dirty){ e.preventDefault(); e.returnValue=""; } });
+
+/* ---- boot ---- */
+(async function boot() {
+  if (!lotId) {
+    live(false, "Finding a lot…");
+    const snap = await getDocs(collection(db, "lots"));
+    if (snap.empty) { renderNoLots(document.querySelector(".wrap")); return; }
+    lotId = snap.docs[0].id;
+  }
+  rememberLot(lotId);
+  watchLot();
+  const preFloor = new URLSearchParams(location.search).get("floor");
+  if (preFloor) { const iv = setInterval(()=>{ if(lot){ clearInterval(iv); openEditor(preFloor); } }, 150); }
+})();
+</script>
+</body>
+</html>

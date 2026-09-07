@@ -3,7 +3,7 @@ import { functions } from "./firebase-config.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
 import { setupRecaptcha, sendOTP, verifyOTP } from "./authService.js";
 
-const CURRENT_LOT_ID = "main-campus";
+const CURRENT_LOT_ID = "phoneix-marketcity";
 const STRIPE_PUBLISHABLE_KEY = "pk_test_51UChHzL1pibr28o9lx7ORwO9iCKBc8MbC5CcE0qEIJ9XBv9l92sULCO2JhYsbefHzyEXwVPqO09ebKSapNCHQP6800JL6wtr1s";
 
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);

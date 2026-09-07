@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Revenue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  .head{display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--ink); flex-wrap:wrap;}
+  .head .month{font-size:17px; font-weight:700; min-width:170px; text-align:center;}
+  .head .grow{flex:1;}
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--ink);}
+  @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr);}}
+  .kpi{padding:16px 18px; border-right:1px solid var(--ink);}
+  .kpi:last-child{border-right:none;}
+  .kpi .l{font-size:10.5px; text-transform:uppercase; color:var(--muted); letter-spacing:.04em;}
+  .kpi .v{font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; margin:2px 0;}
+  .kpi .d{font-size:11.5px; color:var(--muted);}
+  .kpi .d.up{color:var(--free);} .kpi .d.down{color:var(--taken);}
+  .grid2{display:grid; grid-template-columns:1fr 1fr;}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr;}}
+  .card{padding:18px 20px; border-right:1px solid var(--ink); border-bottom:1px solid var(--ink);}
+  .card:nth-child(2n){border-right:none;}
+  .card.wide{grid-column:1/-1; border-right:none;}
+  .card h2{font-size:13.5px; margin-bottom:2px;}
+  .card .sub{font-size:11px; color:var(--muted); margin-bottom:12px; line-height:1.5;}
+  .insight{border-left:3px solid var(--warn); padding:8px 12px; font-size:12.5px; margin-top:12px; background:color-mix(in srgb,var(--warn) 8%,transparent); line-height:1.5;}
+  .foot{padding:14px 20px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .foot .grow{flex:1;}
+  .empty-state{padding:40px 20px; text-align:center;}
+  .empty-state h2{font-size:16px; margin-bottom:6px;}
+  .empty-state p{font-size:12.5px; color:var(--muted); margin-bottom:14px; line-height:1.5;}
+  table{width:100%; border-collapse:collapse; font-size:12px;}
+  th,td{padding:7px 8px; border-bottom:1px solid var(--line); text-align:left;}
+  th{font-size:10.5px; text-transform:uppercase; color:var(--muted); letter-spacing:.04em;}
+  td.n{font-variant-numeric:tabular-nums; text-align:right;} th.n{text-align:right;}
+  td.mono{font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="mark">SP</div><div><h1 data-brand-title>Smart Park</h1><div class="tag" data-brand-tag></div></div></div>
+    <div class="hdr-right"><span class="live-dot" id="liveDot"><i></i> <span id="liveText">Loading</span></span><button class="icon-btn" id="themeBtn">🌙</button></div>
+  </header>
+  <nav class="navbar">
+    <a href="control.html">Control Room</a>
+    <a href="layout.html">Layout</a>
+    <a href="cameras.html">Cameras</a>
+    <a href="qr.html">QR Codes</a>
+    <a href="revenue.html">Revenue</a>
+    <span class="spacer"></span>
+    <a href="index.html" class="switch">switch lot</a>
+  </nav>
+
+  <div class="head">
+    <button class="btn" id="prevBtn">←</button>
+    <div class="month" id="monthLabel">—</div>
+    <button class="btn" id="nextBtn">→</button>
+    <div class="grow"></div>
+    <span class="note" id="allTime"></span>
+  </div>
+
+  <div id="content">
+    <div class="kpis">
+      <div class="kpi"><div class="l">Revenue this month</div><div class="v" id="kRev">—</div><div class="d" id="kRevD"></div></div>
+      <div class="kpi"><div class="l">Paid exits</div><div class="v" id="kCount">—</div><div class="d" id="kCountD"></div></div>
+      <div class="kpi"><div class="l">Average ticket</div><div class="v" id="kAvg">—</div><div class="d" id="kAvgD"></div></div>
+      <div class="kpi"><div class="l">Average stay</div><div class="v" id="kStay">—</div><div class="d" id="kStayD"></div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card wide">
+        <h2>Daily revenue</h2>
+        <div class="sub">Each bar is a day. Dashed line in the corner compares this month's shape to last month's.</div>
+        <div id="chDaily"></div>
+        <div class="insight" id="insDaily"></div>
+      </div>
+
+      <div class="card">
+        <h2>When money comes in</h2>
+        <div class="sub">Revenue by hour of exit. Your configured peak windows are 9–11 and 17–20.</div>
+        <div id="chHour"></div>
+        <div class="insight" id="insHour"></div>
+      </div>
+
+      <div class="card">
+        <h2>Day of week</h2>
+        <div class="sub">Average revenue per weekday this month.</div>
+        <div id="chDow"></div>
+        <div class="insight" id="insDow"></div>
+      </div>
+
+      <div class="card wide">
+        <h2>Hour × weekday heat</h2>
+        <div class="sub">Where exits cluster. Outlined cells are the busiest 15%.</div>
+        <div id="chHeat"></div>
+      </div>
+
+      <div class="card">
+        <h2>By floor</h2>
+        <div class="sub">Share of this month's revenue.</div>
+        <div id="chFloor"></div>
+      </div>
+
+      <div class="card">
+        <h2>Top bays</h2>
+        <div class="sub">Most-earning bays this month.</div>
+        <div id="chBays"></div>
+      </div>
+
+      <div class="card">
+        <h2>Stay length</h2>
+        <div class="sub">How long people park, in billed hours.</div>
+        <div id="chStay"></div>
+      </div>
+
+      <div class="card">
+        <h2>Pricing at work</h2>
+        <div class="sub">How often each multiplier tier applied at exit.</div>
+        <div id="chTier"></div>
+        <div class="insight" id="insTier"></div>
+      </div>
+
+      <div class="card wide">
+        <h2>Recent payments</h2>
+        <div class="sub">Latest 40 this month.</div>
+        <div style="overflow:auto;"><table id="tbl"><thead><tr><th>When</th><th>Bay</th><th>Floor</th><th class="n">Stay</th><th class="n">Occupancy</th><th class="n">Rate</th><th class="n">Paid</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state hidden" id="emptyState">
+    <h2>No payments recorded yet</h2>
+    <p>Payment records start the moment the updated backend is deployed and someone pays at the exit.<br>
+    For a demo, you can generate plausible history for this lot.</p>
+    <button class="btn primary" id="seedBtn">Generate 45 days of demo data</button>
+  </div>
+
+  <div class="foot">
+    <button class="btn" id="csvBtn">Download CSV for this month</button>
+    <div class="grow"></div>
+    <span class="note" id="truncNote"></span>
+  </div>
+</div>
+
+<script type="module">
+import { db } from "./js/firebase-config.js";
+import { functions } from "./js/firebase-config.js";
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
+import { mountAdminChrome, toast, explain, live, getLotId, rememberLot, renderNoLots } from "./js/adminui.js";
+import { bars, heatmap, ranked, sparkPair, CHART_CSS } from "./js/charts.js";
+
+mountAdminChrome({ title: "Revenue", tag: "", here: "revenue.html" });
+document.head.appendChild(Object.assign(document.createElement("style"), { textContent: CHART_CSS }));
+const $ = (id) => document.getElementById(id);
+const getRevenue = httpsCallable(functions, "getRevenue");
+const seedDemo = httpsCallable(functions, "seedDemoPayments");
+const INR = (n) => "₹" + Math.round(n).toLocaleString("en-IN");
+const pct = (a, b) => b ? Math.round((a - b) / b * 100) : null;
+
+let lotId = getLotId();
+let cursor = new Date(); cursor.setDate(1); cursor.setHours(0,0,0,0);
+let cur = [], prev = [], lotName = "";
+
+const monthRange = (d) => { const a = new Date(d.getFullYear(), d.getMonth(), 1), b = new Date(d.getFullYear(), d.getMonth()+1, 1); return [a.getTime(), b.getTime()-1]; };
+const monthName = (d) => d.toLocaleString("en-IN", { month: "long", year: "numeric" });
+
+async function load() {
+  live(false, "Loading"); $("monthLabel").textContent = monthName(cursor);
+  const [a1, b1] = monthRange(cursor);
+  const prevD = new Date(cursor.getFullYear(), cursor.getMonth()-1, 1); const [a0, b0] = monthRange(prevD);
+  try {
+    const [r1, r0] = await Promise.all([getRevenue({ lotId, fromMs: a1, toMs: b1 }), getRevenue({ lotId, fromMs: a0, toMs: b0 })]);
+    cur = r1.data.rows; prev = r0.data.rows; lotName = r1.data.name;
+    document.querySelector("[data-brand-title]").textContent = `${lotName} — Revenue`;
+    $("allTime").textContent = `All time: ${INR(r1.data.totalRevenueAllTime)}`;
+    $("truncNote").textContent = r1.data.truncated ? "Showing the most recent 5,000 payments only." : "";
+    live(true, `${cur.length} payment${cur.length===1?"":"s"}`);
+    render();
+  } catch (e) { live(false, "Error"); toast(explain(e), true); }
+}
+$("prevBtn").onclick = () => { cursor.setMonth(cursor.getMonth()-1); load(); };
+$("nextBtn").onclick = () => { cursor.setMonth(cursor.getMonth()+1); load(); };
+
+const sum = (a, f = x => x) => a.reduce((s, x) => s + f(x), 0);
+const delta = (el, now, before, fmt = INR, invert = false) => {
+  const p = pct(now, before);
+  el.className = "d" + (p == null ? "" : (p >= 0) !== invert ? " up" : " down");
+  el.textContent = p == null ? `vs ${fmt(before)} last month` : `${p >= 0 ? "▲" : "▼"} ${Math.abs(p)}% vs last month (${fmt(before)})`;
+};
+
+function render() {
+  const empty = !cur.length && !prev.length;
+  $("content").classList.toggle("hidden", empty); $("emptyState").classList.toggle("hidden", !empty);
+  if (empty) return;
+
+  // KPIs
+  const rev = sum(cur, x => x.amount), revP = sum(prev, x => x.amount);
+  const avg = cur.length ? rev / cur.length : 0, avgP = prev.length ? revP / prev.length : 0;
+  const stay = cur.length ? sum(cur, x => x.durationHours) / cur.length : 0, stayP = prev.length ? sum(prev, x => x.durationHours) / prev.length : 0;
+  $("kRev").textContent = INR(rev); delta($("kRevD"), rev, revP);
+  $("kCount").textContent = cur.length; delta($("kCountD"), cur.length, prev.length, n => n + " exits");
+  $("kAvg").textContent = INR(avg); delta($("kAvgD"), avg, avgP);
+  $("kStay").textContent = stay.toFixed(1) + " h"; delta($("kStayD"), stay, stayP, n => n.toFixed(1) + " h");
+
+  // daily
+  const days = new Date(cursor.getFullYear(), cursor.getMonth()+1, 0).getDate();
+  const daily = Array.from({ length: days }, (_, i) => ({ label: String(i+1), value: 0, hint: `${i+1} ${cursor.toLocaleString("en-IN",{month:"short"})}` }));
+  cur.forEach(x => { const d = new Date(x.paidMs).getDate(); if (daily[d-1]) daily[d-1].value += x.amount; });
+  const today = new Date(); const isThisMonth = today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth();
+  bars($("chDaily"), daily, { labelEvery: days > 20 ? 3 : 1, highlight: (d, i) => isThisMonth && i === today.getDate()-1 });
+  const best = daily.reduce((m, d) => d.value > m.value ? d : m, daily[0]);
+  const prevDaily = Array.from({ length: 31 }, () => 0); prev.forEach(x => prevDaily[new Date(x.paidMs).getDate()-1] += x.amount);
+  const zeroDays = daily.filter((d, i) => d.value === 0 && (!isThisMonth || i < today.getDate()-1)).length;
+  $("insDaily").innerHTML = `Best day was <b>${best.hint}</b> at ${INR(best.value)}.${zeroDays ? ` ${zeroDays} day${zeroDays===1?"":"s"} had no paid exits.` : ""}`;
+  const spark = document.createElement("div"); spark.style.cssText = "max-width:300px; margin-top:8px"; $("insDaily").appendChild(spark);
+  sparkPair(spark, daily.map(d => d.value), prevDaily.slice(0, days));
+
+  // hour
+  const byHour = Array.from({ length: 24 }, (_, h) => ({ label: h % 3 === 0 ? `${h}h` : "", hint: `${h}:00–${h+1}:00`, value: 0, n: 0 }));
+  cur.forEach(x => { const h = x.hourOfDay ?? new Date(x.exitMs).getHours(); byHour[h].value += x.amount; byHour[h].n++; });
+  bars($("chHour"), byHour, { height: 160, highlight: (d, h) => (h >= 9 && h < 11) || (h >= 17 && h < 20) });
+  const ranked3 = [...byHour.keys()].sort((a, b) => byHour[b].value - byHour[a].value).slice(0, 3);
+  const cfgPeak = h => (h >= 9 && h < 11) || (h >= 17 && h < 20);
+  const inCfg = ranked3.filter(cfgPeak).length;
+  const windowStr = ranked3.map(h => `${h}:00`).join(", ");
+  $("insHour").innerHTML = `Top earning hours: <b>${windowStr}</b>. ${inCfg === 3 ? "All inside your configured peak windows." :
+    inCfg === 0 ? "None of these fall in your configured peak windows — consider moving them." :
+    `${3-inCfg} of them fall outside your configured peak windows.`}`;
+
+  // weekday
+  const dowSum = Array(7).fill(0), dowN = Array(7).fill(0);
+  cur.forEach(x => { const d = x.weekday ?? new Date(x.exitMs).getDay(); dowSum[d] += x.amount; });
+  // count of that weekday in month (for averages)
+  for (let i = 1; i <= days; i++) { const d = new Date(cursor.getFullYear(), cursor.getMonth(), i); if (!isThisMonth || d <= today) dowN[d.getDay()]++; }
+  const names = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const dow = names.map((n, i) => ({ label: n, value: dowN[i] ? dowSum[i] / dowN[i] : 0, hint: `${n} average` }));
+  bars($("chDow"), dow, { height: 160, color: "var(--free)" });
+  const bestDow = dow.reduce((m, d) => d.value > m.value ? d : m, dow[0]), worstDow = dow.reduce((m, d) => d.value < m.value ? d : m, dow[0]);
+  $("insDow").innerHTML = `<b>${bestDow.label}s</b> earn the most (${INR(bestDow.value)}/day); <b>${worstDow.label}s</b> the least (${INR(worstDow.value)}/day).`;
+
+  // heatmap
+  const heat = Array.from({ length: 7 }, () => Array(24).fill(0));
+  cur.forEach(x => { heat[x.weekday ?? new Date(x.exitMs).getDay()][x.hourOfDay ?? new Date(x.exitMs).getHours()] += x.amount; });
+  heatmap($("chHeat"), heat);
+
+  // floor split
+  const byFloor = {}; cur.forEach(x => { const f = x.floor || "—"; byFloor[f] = (byFloor[f] || 0) + x.amount; });
+  ranked($("chFloor"), Object.entries(byFloor).sort((a,b) => b[1]-a[1]).map(([label, value]) => ({ label, value })), { color: "var(--route)" });
+
+  // top bays
+  const byBay = {}; cur.forEach(x => { const l = x.label || "—"; byBay[l] = (byBay[l] || 0) + x.amount; });
+  ranked($("chBays"), Object.entries(byBay).sort((a,b) => b[1]-a[1]).slice(0, 8).map(([label, value]) => ({ label, value })));
+
+  // stay length
+  const stayB = {}; cur.forEach(x => { const k = x.durationHours >= 5 ? "5h+" : `${x.durationHours}h`; stayB[k] = (stayB[k] || 0) + 1; });
+  const stayOrder = ["1h","2h","3h","4h","5h+"];
+  bars($("chStay"), stayOrder.map(k => ({ label: k, value: stayB[k] || 0, hint: `${k} stays` })), { height: 150, yFmt: n => Math.round(n) + "", color: "var(--muted)" });
+
+  // tiers
+  const tier = { "Base (₹50)": 0, "Busy ×1.3": 0, "Full ×1.6": 0, "Peak ×1.2 added": 0, "Hit ₹75 ceiling": 0 };
+  cur.forEach(x => {
+    const o = x.occupancyPercent ?? 0;
+    if (o > 80) tier["Full ×1.6"]++; else if (o >= 50) tier["Busy ×1.3"]++; else tier["Base (₹50)"]++;
+    if (x.isPeakHour) tier["Peak ×1.2 added"]++;
+    if (x.amount >= 75) tier["Hit ₹75 ceiling"]++;
+  });
+  ranked($("chTier"), Object.entries(tier).map(([label, value]) => ({ label, value })), { fmt: n => n + " exits", color: "var(--warn)" });
+  const ceilingPct = cur.length ? Math.round(tier["Hit ₹75 ceiling"] / cur.length * 100) : 0;
+  $("insTier").innerHTML = ceilingPct > 40
+    ? `<b>${ceilingPct}%</b> of exits hit the ₹75 ceiling — the cap is doing most of the work. Raising it would lift revenue on busy days.`
+    : `<b>${ceilingPct}%</b> of exits hit the ₹75 ceiling. Dynamic pricing has room to move.`;
+
+  // table
+  const tb = $("tbl").querySelector("tbody");
+  tb.innerHTML = [...cur].sort((a,b) => b.paidMs - a.paidMs).slice(0, 40).map(x => `<tr>
+    <td>${new Date(x.paidMs).toLocaleString("en-IN", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" })}</td>
+    <td class="mono">${x.label || "—"}</td><td>${x.floor || "—"}</td>
+    <td class="n">${x.durationHours} h</td><td class="n">${x.occupancyPercent ?? "—"}%</td>
+    <td class="n">₹${x.finalRate ?? "—"}/h</td><td class="n"><b>${INR(x.amount)}</b></td></tr>`).join("");
+}
+
+$("csvBtn").onclick = () => {
+  if (!cur.length) return toast("Nothing to export for this month.");
+  const head = ["paid_at","bay","floor","entry","exit","hours","occupancy_pct","peak","rate_per_hour","amount"];
+  const rows = cur.map(x => [new Date(x.paidMs).toISOString(), x.label, x.floor, new Date(x.entryMs).toISOString(), new Date(x.exitMs).toISOString(),
+    x.durationHours, x.occupancyPercent ?? "", x.isPeakHour ? 1 : 0, x.finalRate ?? "", x.amount]);
+  const csv = [head, ...rows].map(r => r.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = `${lotId}-revenue-${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,"0")}.csv`; a.click();
+};
+$("seedBtn").onclick = async () => {
+  const b = $("seedBtn"); b.disabled = true; b.textContent = "Generating…";
+  try { const { data } = await seedDemo({ lotId, days: 45, perDay: 14 }); toast(`Added ${data.records} demo payments (${INR(data.revenueAdded)}).`); await load(); }
+  catch (e) { toast(explain(e), true); b.disabled = false; b.textContent = "Generate 45 days of demo data"; }
+};
+
+(async function boot() {
+  if (!lotId) {
+    live(false, "Finding a lot…");
+    const snap = await getDocs(collection(db, "lots"));
+    if (snap.empty) { renderNoLots(document.querySelector(".wrap")); return; }
+    lotId = snap.docs[0].id;
+  }
+  rememberLot(lotId);
+  load();
+})();
+</script>
+</body>
+</html>

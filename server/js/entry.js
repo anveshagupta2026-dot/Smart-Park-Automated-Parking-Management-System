@@ -11,7 +11,7 @@ import { setupRecaptcha, sendOTP, verifyOTP } from "./authService.js";
 const lockSlot = httpsCallable(functions, "lockSlot");
 
 // Active lot identifier
-const CURRENT_LOT_ID = "main-campus";
+const CURRENT_LOT_ID = "phoneix-marketcity";
 
 // DOM target
 const gridContainer = document.getElementById("parking-grid");
