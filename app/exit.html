@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Exit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+  :root{
+    --ink:#161A1E; --ink-soft:#2B323B; --paper:#EDEAE2; --paper-2:#e4e0d3; --free:#2F6F4E; --taken:#B5402C;
+    --route:#3D6B8C; --line:#C7C2B4; --muted:#555049; --shadow:rgba(22,26,30,.16);
+  }
+  html[data-theme="dark"]{
+    --ink:#EDEAE2; --ink-soft:#c9c5b8; --paper:#1B1F24; --paper-2:#14171b; --free:#5fbb8c; --taken:#e07a5f;
+    --route:#7fb0d6; --line:#3a3f46; --muted:#a9a49a; --shadow:rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Space Grotesk', system-ui, sans-serif; color:var(--ink);
+    background:radial-gradient(circle at 30% 0%, var(--paper-2), var(--paper) 70%); display:flex; justify-content:center; padding:24px 0 60px; transition:background .3s;}
+  .device{width:390px; max-width:100%; background:var(--paper); border:1px solid var(--ink);
+    min-height:720px; display:flex; flex-direction:column; overflow-x:hidden; box-shadow:0 12px 28px var(--shadow); transition:background .3s, color .3s;}
+
+  .toolbar{display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--ink); background:var(--paper);}
+  .brand{display:flex; align-items:center; gap:8px;}
+  .brand .mark{width:26px; height:26px; background:linear-gradient(135deg, var(--ink), var(--ink-soft)); flex:none;
+    display:flex; align-items:center; justify-content:center; color:var(--paper); font-size:12px; font-weight:700;}
+  .brand .name{font-size:13px; font-weight:700;}
+  .right{display:flex; align-items:center; gap:8px;}
+  .sync-badge{font-size:11px; color:var(--muted); font-weight:700;}
+  .sync-badge.live{color:var(--free);}
+  .icon-btn{width:32px; height:32px; border:1px solid var(--ink); background:var(--paper); color:var(--ink); cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;}
+  .lotline{padding:12px 20px 0; font-size:12px; color:var(--muted);}
+  .lotline b{color:var(--ink);}
+
+  .stepper{display:flex; align-items:center; gap:6px; padding:16px 20px 12px;}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--line); transition:background .3s;}
+  .dot.active{background:var(--route);}
+  .dash{flex:1; height:1px; background-image:linear-gradient(to right, var(--line) 0 6px, transparent 6px 12px); background-size:12px 1px; background-repeat:repeat-x;}
+  .screen{display:none; flex-direction:column; padding:8px 20px 20px; flex:1; animation:fade .25s ease;}
+  .screen.active{display:flex;}
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .screen{animation:none;} }
+  .eyebrow{font-size:13px; color:var(--route); margin:0 0 4px; font-weight:600; letter-spacing:.02em;}
+  h1{font-size:22px; margin:0 0 6px; font-weight:700;}
+  .sub{font-size:14px; color:var(--muted); margin:0 0 20px; line-height:1.5;}
+  .info-row{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px dashed var(--line); font-size:14px;}
+  .info-row .k{color:var(--muted);} .info-row .v{font-weight:600; font-variant-numeric:tabular-nums;}
+  .spacer{flex:1;}
+  .cta{width:100%; padding:16px; background:linear-gradient(135deg, var(--ink), var(--ink-soft)); color:var(--paper); border:none; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; margin-top:auto; transition:.15s; box-shadow:0 4px 10px var(--shadow);}
+  .cta:disabled{background:var(--line); color:var(--muted); box-shadow:none; cursor:not-allowed;}
+  .ghost{width:100%; padding:12px; background:transparent; color:var(--ink); border:1px solid var(--ink); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; margin-top:8px;}
+  .toggle-link{font-size:12px; color:var(--route); cursor:pointer; text-decoration:underline; margin-bottom:16px; display:inline-block; background:none; border:none; font-family:inherit; padding:0;}
+  .breakdown{font-size:12px; color:var(--muted); border-left:2px solid var(--line); padding-left:12px; margin:4px 0 16px; display:none;}
+  .breakdown.open{display:block;}
+  .breakdown div{display:flex; justify-content:space-between; padding:3px 0;}
+  .total{display:flex; justify-content:space-between; align-items:baseline; padding:16px 0; border-top:1px solid var(--ink); border-bottom:1px solid var(--ink); margin:8px 0 20px;}
+  .total .k{font-size:14px;} .total .v{font-size:28px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .status-mark{width:56px; height:56px; border:2px solid var(--free); display:flex; align-items:center; justify-content:center; font-size:26px; color:var(--free); margin-bottom:20px;}
+  .error-banner{border:1px solid var(--taken); color:var(--taken); padding:10px 12px; font-size:12px; margin-bottom:16px; display:none;}
+  .error-banner.show{display:block;}
+
+  .gcard{border:1px solid var(--ink); padding:18px; margin:8px 0 20px; background:var(--paper);}
+  .gbtn{width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:12px; border:1px solid var(--ink); background:#fff; color:#161A1E; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;}
+  .gbtn:disabled{opacity:.6; cursor:wait;}
+  .gbtn svg{width:18px; height:18px; flex:none;}
+
+  .pay-card{border:1px solid var(--ink); padding:16px; margin-bottom:16px; display:flex; flex-direction:column; gap:12px;}
+  .pay-card label{font-size:11px; font-weight:600; color:var(--muted); display:block; margin-bottom:4px;}
+  .pay-card .row{display:flex; gap:8px;}
+  .pay-card .row > div{flex:1; min-width:0;}
+  .sfield{border:1px solid var(--line); padding:10px; background:var(--paper);}
+  .sfield.StripeElement--focus{border-color:var(--route);}
+  .sfield.StripeElement--invalid{border-color:var(--taken);}
+  button:focus-visible{outline:2px solid var(--route); outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="toolbar">
+    <div class="brand"><div class="mark">SP</div><div class="name">Smart Park</div></div>
+    <div class="right">
+      <span class="sync-badge" id="syncBadge">● Connecting</span>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+    </div>
+  </div>
+  <div class="lotline">Leaving <b id="lotName">—</b> <span id="lotLoc"></span></div>
+  <div class="stepper">
+    <div class="dot active"></div><div class="dash"></div><div class="dot"></div><div class="dash"></div><div class="dot"></div>
+  </div>
+
+  <section class="screen active" data-step="0">
+    <p class="eyebrow">Exit · Step 1 of 3</p>
+    <h1>Sign in to continue</h1>
+    <p class="sub">Use the Google account you signed in with at the entrance. That's how we find your bay.</p>
+    <div class="gcard">
+      <button class="gbtn" id="googleBtn">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.8 6.1C12.3 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.4 5.8C43.7 38 46.5 31.8 46.5 24.5z"/><path fill="#FBBC05" d="M10.4 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6l-7.8-6.1A24 24 0 0 0 0 24c0 3.9.9 7.6 2.6 10.8l7.8-6.2z"/><path fill="#34A853" d="M24 48c6.2 0 11.6-2 15.4-5.6l-7.4-5.8c-2 1.4-4.7 2.3-8 2.3-6.3 0-11.7-4.1-13.6-9.9l-7.8 6.2C6.5 42.6 14.6 48 24 48z"/></svg>
+        Sign in with Google
+      </button>
+    </div>
+    <div class="error-banner" id="authError"></div>
+    <div class="spacer"></div>
+    <button class="cta" id="authCta" disabled>Sign in to see your bill</button>
+  </section>
+
+  <section class="screen" data-step="1">
+    <p class="eyebrow">Exit · Step 2 of 3</p>
+    <h1>Your bill</h1>
+    <p class="sub">Locked the moment you signed in. It won't change if a payment attempt fails.</p>
+    <div class="info-row"><span class="k">Lot</span><span class="v" id="billLot">—</span></div>
+    <div class="info-row"><span class="k">Bay</span><span class="v" id="billBay">—</span></div>
+    <div class="info-row"><span class="k">Time parked</span><span class="v" id="billDur">—</span></div>
+    <button class="toggle-link" id="bdToggle">See rate calculation</button>
+    <div class="breakdown" id="breakdown"></div>
+    <div class="total"><span class="k">Amount due</span><span class="v">₹<span id="billAmt">0</span></span></div>
+    <div class="spacer"></div>
+    <button class="cta" id="toPayBtn">Pay ₹<span id="toPayAmt">0</span></button>
+  </section>
+
+  <section class="screen" data-step="2">
+    <p class="eyebrow">Exit · Step 3 of 3</p>
+    <h1>Pay to exit</h1>
+    <p class="sub">Same amount every time. A failed attempt never recalculates your bill.</p>
+    <div class="error-banner" id="payError"></div>
+    <div class="pay-card">
+      <div><label for="cardNumber">Card number</label><div id="cardNumber" class="sfield"></div></div>
+      <div class="row">
+        <div><label for="cardExpiry">Expiry</label><div id="cardExpiry" class="sfield"></div></div>
+        <div><label for="cardCvc">CVV</label><div id="cardCvc" class="sfield"></div></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <button class="cta" id="payBtn">Pay ₹<span id="payAmt">0</span></button>
+    <button class="ghost" id="backBtn">Back</button>
+  </section>
+
+  <section class="screen" data-step="3">
+    <div class="status-mark">✓</div>
+    <h1>Exit confirmed</h1>
+    <p class="sub" id="doneSub">Your bay is open for the next driver. Thanks for parking with us.</p>
+    <div class="spacer"></div>
+  </section>
+</div>
+
+<script type="module">
+import { db, functions } from "./js/firebase-config.js";
+import { signInWithGoogle, getCurrentUser } from "./js/authService.js";
+import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
+
+const STRIPE_PK = "pk_test_51UChHzL1pibr28o9lx7ORwO9iCKBc8MbC5CcE0qEIJ9XBv9l92sULCO2JhYsbefHzyEXwVPqO09ebKSapNCHQP6800JL6wtr1s";
+const $ = (id) => document.getElementById(id);
+const lotId = new URLSearchParams(location.search).get("lot") || "main-campus";
+
+const finalizeExit = httpsCallable(functions, "finalizeExit");
+const createPaymentIntent = httpsCallable(functions, "createPaymentIntent");
+const confirmPaymentAndRelease = httpsCallable(functions, "confirmPaymentAndRelease");
+
+let session = { email:null, amount:0, bayLabel:"—" };
+let stripe, cardNumber, mounted = false;
+
+$("themeBtn").onclick = () => {
+  const r = document.documentElement, dark = r.getAttribute("data-theme") === "dark";
+  r.setAttribute("data-theme", dark ? "light" : "dark"); $("themeBtn").textContent = dark ? "🌙" : "☀️";
+};
+function goStep(i) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === i));
+  document.querySelectorAll(".stepper .dot").forEach((d, k) => d.classList.toggle("active", k <= Math.min(i, 2)));
+}
+function banner(id, text) { const b = $(id); b.textContent = text || ""; b.classList.toggle("show", !!text); }
+$("bdToggle").onclick = () => $("breakdown").classList.toggle("open");
+$("backBtn").onclick = () => goStep(1);
+
+onSnapshot(doc(db, "lots", lotId), (s) => {
+  const lot = s.exists() ? s.data() : {};
+  $("lotName").textContent = lot.name || lotId;
+  $("lotLoc").textContent = lot.location ? `· ${lot.location}` : "";
+  $("billLot").textContent = lot.name || lotId;
+  $("syncBadge").textContent = "● Live"; $("syncBadge").classList.add("live");
+}, () => { $("syncBadge").textContent = "● Offline"; $("syncBadge").classList.remove("live"); });
+
+function fmtDuration(entry, exit) {
+  const mins = Math.max(0, Math.round((exit - entry) / 60000));
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h ? `${h} hr ${m} min` : `${m} min`;
+}
+function tsToMs(t) {
+  if (!t) return null;
+  if (typeof t === "number") return t;
+  if (t._seconds != null) return t._seconds * 1000;
+  if (t.seconds != null) return t.seconds * 1000;
+  const n = new Date(t).getTime(); return isNaN(n) ? null : n;
+}
+function renderBreakdown(d) {
+  const p = d.pricingDetails || {}, b = p.breakdown || {};
+  const rows = [];
+  if (b.baseRate != null) rows.push(["Base rate", `₹${b.baseRate} / hr`]);
+  if (b.occupancyMultiplier != null) rows.push([`Lot ${p.occupancyPercent ?? "—"}% full ×${b.occupancyMultiplier}`, `₹${Math.round(b.baseRate * b.occupancyMultiplier)} / hr`]);
+  if (b.peakMultiplier != null) rows.push([p.isPeakHour ? `Peak hour ×${b.peakMultiplier}` : "Off-peak ×1.0", `₹${d.finalRate} / hr`]);
+  const raw = Math.round(d.finalRate * d.durationHours);
+  rows.push([`× ${d.durationHours} hr (rounded up)`, `₹${raw}`]);
+  if (d.amount > raw) rows.push(["Minimum charge", `₹${d.amount}`]);
+  if (d.amount < raw) rows.push(["Ceiling applied (₹75 max)", `₹${d.amount}`]);
+  $("breakdown").innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join("");
+}
+
+$("googleBtn").onclick = async () => {
+  const gb = $("googleBtn"), cta = $("authCta");
+  gb.disabled = true; banner("authError"); cta.textContent = "Signing in…";
+  try {
+    const user = getCurrentUser() || await signInWithGoogle();
+    session.email = user.email;
+    cta.textContent = "Finding your bay…";
+    const { data } = await finalizeExit({ lotId, email: user.email });
+    session.amount = data.amount;
+    session.bayLabel = (data.slotId || "").split("__").pop() || "—";
+    $("billBay").textContent = session.bayLabel;
+    const en = tsToMs(data.entryTime), ex = tsToMs(data.exitTime);
+    $("billDur").textContent = (en && ex) ? fmtDuration(en, ex) : `${data.durationHours} hr`;
+    renderBreakdown(data);
+    $("billAmt").textContent = data.amount; $("toPayAmt").textContent = data.amount; $("payAmt").textContent = data.amount;
+    goStep(1);
+  } catch (err) {
+    const code = err.code || "";
+    let text = err.message || "Sign-in failed.";
+    if (code.includes("not-found")) text = `No active bay for ${session.email || "that account"} at this lot. Did you enter with a different Google account?`;
+    if (code.includes("popup-closed")) text = "Sign-in was closed before finishing.";
+    banner("authError", text);
+    gb.disabled = false; cta.textContent = "Sign in to see your bill";
+  }
+};
+
+$("toPayBtn").onclick = () => {
+  if (!mounted) {
+    stripe = Stripe(STRIPE_PK);
+    const els = stripe.elements();
+    const ink = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim() || "#161A1E";
+    const style = { base: { fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: "14px", color: ink, "::placeholder": { color: "#8a867c" } } };
+    cardNumber = els.create("cardNumber", { style, placeholder: "Card number" });
+    els.create("cardExpiry", { style, placeholder: "MM / YY" }).mount("#cardExpiry");
+    els.create("cardCvc", { style, placeholder: "CVV" }).mount("#cardCvc");
+    cardNumber.mount("#cardNumber");
+    mounted = true;
+  }
+  banner("payError"); goStep(2);
+};
+
+$("payBtn").onclick = async () => {
+  const btn = $("payBtn"); btn.disabled = true; banner("payError");
+  try {
+    const { data: pi } = await createPaymentIntent({ lotId, email: session.email });
+    const { error, paymentIntent } = await stripe.confirmCardPayment(pi.clientSecret, { payment_method: { card: cardNumber } });
+    if (error) throw new Error(error.message);
+    const { data } = await confirmPaymentAndRelease({ lotId, email: session.email, paymentIntentId: paymentIntent.id });
+    if (!data.success) throw new Error(data.message || "Payment not confirmed.");
+    $("doneSub").textContent = `Paid ₹${session.amount}. Bay ${session.bayLabel} is open for the next driver. Thanks for parking with us.`;
+    goStep(3);
+  } catch (err) {
+    banner("payError", `${err.message || "Payment didn't go through."} Your amount is still ₹${session.amount} — try again.`);
+    btn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>

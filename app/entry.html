@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Park — Driver Entry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161A1E; --ink-soft:#2B323B; --paper:#EDEAE2; --paper-2:#e4e0d3;
+    --free:#2F6F4E; --free-bg:#D8F3E5; --taken:#B5402C; --taken-bg:#FDE8E5;
+    --route:#3D6B8C; --pillar:#808996; --pillar-bg:#CAD0D8;
+    --line:#C7C2B4; --muted:#555049; --shadow:rgba(22,26,30,.18);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Space Grotesk", system-ui, sans-serif; color:var(--ink);
+    background:radial-gradient(circle at 30% 0%, var(--paper-2), var(--paper) 70%);
+    display:flex; justify-content:center; padding:20px 10px 50px; min-height:100vh;
+  }
+  .device{
+    width:420px; max-width:100%; background:var(--paper); border:1.5px solid var(--ink);
+    display:flex; flex-direction:column; box-shadow:0 16px 36px var(--shadow); min-height:680px;
+  }
+  .toolbar{display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--ink);}
+  .brand{display:flex; align-items:center; gap:8px;}
+  .brand .mark{width:26px; height:26px; background:var(--ink); color:var(--paper); font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;}
+  .sync-badge{font-size:11px; color:var(--muted); font-weight:700;}
+  .sync-badge.live{color:var(--free);}
+
+  .stepper{display:flex; align-items:center; gap:6px; padding:14px 18px 6px;}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--line); transition:background .3s;}
+  .dot.active{background:var(--route);}
+  .dash{flex:1; height:1px; background-image:linear-gradient(to right, var(--line) 0 6px, transparent 6px 12px); background-size:12px 1px; background-repeat:repeat-x;}
+
+  .screen{display:none; padding:14px 18px 20px; flex-direction:column; flex:1;}
+  .screen.active{display:flex;}
+  .eyebrow{font-size:11px; font-weight:700; color:var(--route); text-transform:uppercase; margin-bottom:2px;}
+  h1{font-size:20px; font-weight:700; margin-bottom:4px;}
+  .sub{font-size:12px; color:var(--muted); margin-bottom:12px;}
+
+  .view-controls{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; flex-wrap:wrap;}
+  .pill-switch{display:inline-flex; border:1px solid var(--ink); border-radius:999px; overflow:hidden;}
+  .pill-switch button{padding:4px 12px; border:none; background:transparent; font-family:inherit; font-size:11px; font-weight:700; color:var(--ink); cursor:pointer;}
+  .pill-switch button.on{background:var(--ink); color:var(--paper);}
+  .small-btn{border:1px solid var(--ink); border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; background:var(--paper); font-family:inherit; color:var(--ink);}
+
+  .blueprint-viewport{
+    border:1.5px solid var(--ink); background:var(--paper-2); border-radius:4px;
+    overflow:auto; max-height:430px; height:430px; -webkit-overflow-scrolling:touch; perspective:900px; padding:20px;
+  }
+  .blueprint-grid{
+    display:grid; gap:4px; width:740px; min-width:740px; padding-right:40px;
+    transform-origin:center center; transition:transform 0.45s cubic-bezier(0.2,0.8,0.2,1); transform-style:preserve-3d;
+  }
+  .bp-cell{
+    min-width:50px; min-height:42px; border:1px dashed var(--line); background:var(--paper);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:9px; font-weight:700; user-select:none; font-family:"JetBrains Mono", monospace;
+    position:relative; text-align:center; padding:2px; transition:transform 0.3s, box-shadow 0.3s; transform-style:preserve-3d;
+  }
+  .cell-empty{background:transparent; border-color:transparent;}
+  .cell-slot{cursor:pointer; border:1.5px solid var(--line);}
+  .cell-slot.free{border-color:var(--free); background:var(--free-bg); color:var(--free);}
+  .cell-slot.taken{border-color:var(--taken); background:var(--taken-bg); color:var(--taken); cursor:not-allowed;}
+  .cell-slot.unprovisioned{border-style:dashed; border-color:var(--muted); background:repeating-linear-gradient(45deg, transparent 0 3px, var(--line) 3px 4px); color:var(--muted); cursor:not-allowed;}
+  .cell-slot.selected{border-color:var(--route); background:var(--route); color:#fff; box-shadow:0 0 0 2px var(--ink);}
+  .cell-slot.angled{transform:skewX(-14deg); border-style:solid;}
+  .cell-pillar{background:repeating-linear-gradient(45deg, var(--pillar-bg) 0 4px, var(--pillar) 4px 6px); border:1.5px solid var(--ink); color:var(--ink); border-radius:3px;}
+  .cell-sign{background:#FACC15; color:#000; border:1.5px solid #000; font-size:8px;}
+  .cell-gate{background:var(--ink); color:var(--paper); font-size:9px;}
+  .cell-road{background:var(--paper); border:1px dashed var(--line); color:var(--muted); font-size:8px;}
+  .cell-curve{background:var(--paper); border:1px dashed var(--line); color:var(--muted); font-size:8px;}
+  .cell-curve::after{content:""; position:absolute; inset:0; border:3px dashed var(--line); pointer-events:none;}
+  .curve-tr::after{ border-radius:0 100% 0 0; border-bottom:none; border-left:none; }
+  .curve-tl::after{ border-radius:100% 0 0 0; border-bottom:none; border-right:none; }
+  .curve-br::after{ border-radius:0 0 100% 0; border-top:none; border-left:none; }
+  .curve-bl::after{ border-radius:0 0 0 100%; border-top:none; border-right:none; }
+
+  .mode-3d{transform:rotateX(52deg) rotateZ(-24deg) scale(0.72) !important;}
+  .mode-3d .cell-slot{transform:translateZ(14px); box-shadow:-3px 5px 0px rgba(0,0,0,0.25);}
+  .mode-3d .cell-slot.selected{transform:translateZ(20px); box-shadow:-4px 7px 0px rgba(0,0,0,0.38);}
+  .mode-3d .cell-pillar{transform:translateZ(26px); box-shadow:-5px 9px 0px rgba(0,0,0,0.45);}
+  .mode-3d .cell-sign{transform:translateZ(18px); box-shadow:-3px 5px 0px rgba(0,0,0,0.3);}
+  .mode-3d .cell-gate{transform:translateZ(8px); box-shadow:-2px 3px 0px rgba(0,0,0,0.22);}
+
+  .info-row{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+  .info-row .k{color:var(--muted);} .info-row .v{font-weight:700;}
+  .action-btn{
+    width:100%; height:46px; border-radius:4px; background:var(--ink); color:var(--paper);
+    border:none; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; margin-top:auto; transition:.15s;
+  }
+  .action-btn:disabled{background:var(--line); color:var(--muted); cursor:not-allowed;}
+  .ghost-btn{
+    width:100%; height:40px; border-radius:4px; background:transparent; color:var(--ink);
+    border:1px solid var(--ink); font-family:inherit; font-size:12px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; margin-top:8px;
+  }
+  .status-badge{width:50px; height:50px; border-radius:50%; border:2px solid var(--free); color:var(--free); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; margin-bottom:16px;}
+  .msg{font-size:12px; margin-top:10px; padding:10px 12px; border:1px solid var(--taken); background:var(--taken-bg); color:var(--taken); display:none;}
+  .msg.show{display:block;}
+  .legend{display:flex; gap:12px; font-size:11px; color:var(--muted); margin-top:8px;}
+  .legend i{display:inline-block; width:10px; height:10px; border:1px solid; margin-right:4px; vertical-align:-1px;}
+  button:focus-visible{outline:2px solid var(--route); outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="toolbar">
+    <div class="brand"><div class="mark">SP</div><span style="font-size:13px; font-weight:700;" id="lotName">Smart Park</span></div>
+    <span class="sync-badge" id="syncBadge">● Connecting</span>
+  </div>
+  <div class="stepper">
+    <div class="dot active"></div><div class="dash"></div><div class="dot"></div>
+  </div>
+
+  <!-- STEP 1: choose a bay -->
+  <section class="screen active" id="step-0">
+    <span class="eyebrow">Entry · Step 1 of 2</span>
+    <h1>Pick an open bay</h1>
+    <p class="sub" id="lotLoc">Tap any open bay to hold it.</p>
+    <div class="view-controls">
+      <div class="pill-switch" id="floorTabs"></div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="small-btn" id="autoBtn">⚡ Nearest</button>
+        <div class="pill-switch"><button id="btn2D" class="on">2D</button><button id="btn3D">3D Iso</button></div>
+      </div>
+    </div>
+    <div class="blueprint-viewport"><div class="blueprint-grid" id="blueprintGrid"></div></div>
+    <div class="legend">
+      <span><i style="border-color:var(--free); background:var(--free-bg)"></i>Open</span>
+      <span><i style="border-color:var(--taken); background:var(--taken-bg)"></i>Taken</span>
+      <span id="openCount" style="margin-left:auto; font-weight:700; color:var(--ink);"></span>
+    </div>
+    <div class="msg" id="msg"></div>
+    <button class="action-btn" id="lockBtn" disabled style="margin-top:14px;">Pick a bay to continue</button>
+  </section>
+
+  <!-- STEP 2: locked -->
+  <section class="screen" id="step-1">
+    <div class="status-badge">✓</div>
+    <span class="eyebrow">Entry · Step 2 of 2</span>
+    <h1>Bay locked</h1>
+    <p class="sub">Head in. Sign in with the same Google account when you leave.</p>
+    <div class="info-row"><span class="k">Your bay</span><span class="v" id="tBay">—</span></div>
+    <div class="info-row"><span class="k">Floor</span><span class="v" id="tFloor">—</span></div>
+    <div class="info-row"><span class="k">Lot</span><span class="v" id="tLot">—</span></div>
+    <div class="info-row"><span class="k">Account</span><span class="v" id="tEmail" style="font-size:12px;">—</span></div>
+    <div class="info-row"><span class="k">Base rate</span><span class="v">₹50 / hr</span></div>
+    <p class="sub" style="margin-top:10px;">Final rate depends on how full the lot is when you exit. Never more than ₹75.</p>
+    <button class="action-btn" id="againBtn" style="margin-top:auto;">Back to map</button>
+  </section>
+</div>
+
+<script type="module">
+import { db, functions } from "./js/firebase-config.js";
+import { signInWithGoogle, getCurrentUser } from "./js/authService.js";
+import { doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js";
+import { defaultBlueprint, fromStore, overlayStatus, nearestFree, renderBlueprint } from "./js/blueprint.js";
+
+const lockSlot = httpsCallable(functions, "lockSlot");
+const $ = (id) => document.getElementById(id);
+const lotId = new URLSearchParams(location.search).get("lot") || "main-campus";
+
+let lot = null, floors = [], currentFloor = null, slotDocs = [], selectedLabel = null, mode3d = false;
+
+// ---------- UI helpers ----------
+function goToStep(i) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(`step-${i}`).classList.add("active");
+  document.querySelectorAll(".stepper .dot").forEach((d, k) => d.classList.toggle("active", k <= i));
+}
+function showMsg(text) { const m = $("msg"); m.textContent = text || ""; m.classList.toggle("show", !!text); }
+function setView(m3d) {
+  mode3d = m3d;
+  $("blueprintGrid").classList.toggle("mode-3d", mode3d);
+  $("btn3D").classList.toggle("on", mode3d); $("btn2D").classList.toggle("on", !mode3d);
+}
+$("btn2D").onclick = () => setView(false);
+$("btn3D").onclick = () => setView(true);
+
+function buildFloorTabs() {
+  const t = $("floorTabs"); t.innerHTML = "";
+  floors.forEach(f => {
+    const b = document.createElement("button"); b.textContent = f; b.classList.toggle("on", f === currentFloor);
+    b.onclick = () => { currentFloor = f; selectedLabel = null; showMsg(); buildFloorTabs(); draw(); };
+    t.appendChild(b);
+  });
+}
+
+// ---------- blueprint for the current floor ----------
+function currentBlueprint() {
+  const docsHere = slotDocs.filter(d => d.floor === currentFloor);
+  const stored = lot?.layout?.floors?.[currentFloor];
+  const base = fromStore(stored) || defaultBlueprint(docsHere.map(d => d.label || d.id.split("__").pop()));
+  return overlayStatus(base, docsHere);
+}
+
+function draw() {
+  if (!currentFloor) return;
+  const bp = currentBlueprint();
+  renderBlueprint($("blueprintGrid"), bp, {
+    selectedId: selectedLabel,
+    onSlotClick: (cell) => { selectedLabel = cell.id; showMsg(); draw(); }
+  });
+  setView(mode3d);
+  const docsHere = slotDocs.filter(d => d.floor === currentFloor);
+  const open = docsHere.filter(d => d.status === "available").length;
+  $("openCount").textContent = `${open} of ${docsHere.length} open`;
+  // if the bay we picked just got taken by someone else, drop the selection
+  if (selectedLabel && !docsHere.some(d => (d.label || "") === selectedLabel && d.status === "available")) {
+    if (selectedLabel) showMsg(`Bay ${selectedLabel} was just taken. Pick another.`);
+    selectedLabel = null;
+  }
+  const btn = $("lockBtn");
+  btn.disabled = !selectedLabel;
+  btn.textContent = selectedLabel ? `Sign in to lock bay ${selectedLabel}` : "Pick a bay to continue";
+}
+
+$("autoBtn").onclick = () => {
+  const id = nearestFree(currentBlueprint());
+  if (!id) { showMsg("No open bays on this floor."); return; }
+  selectedLabel = id; showMsg(); draw();
+};
+
+// ---------- lock ----------
+$("lockBtn").onclick = async () => {
+  if (!selectedLabel) return;
+  const btn = $("lockBtn"), label = selectedLabel;
+  btn.disabled = true; btn.textContent = "Signing in…"; showMsg();
+  try {
+    const user = getCurrentUser() || await signInWithGoogle();
+    btn.textContent = `Locking ${label}…`;
+    const slotId = `${lotId}__${label}`;
+    await lockSlot({ lotId, slotId, email: user.email });
+    $("tBay").textContent = label; $("tFloor").textContent = currentFloor;
+    $("tLot").textContent = lot?.name || lotId; $("tEmail").textContent = user.email;
+    selectedLabel = null; goToStep(1);
+  } catch (err) {
+    const code = err.code || "";
+    let text = err.message || "Couldn't lock that bay.";
+    if (code.includes("already-exists")) text = "You already have a bay locked. Pay at the exit before taking another.";
+    if (code.includes("failed-precondition")) text = `Bay ${label} was just taken. Pick another.`;
+    if (code.includes("popup-closed")) text = "Sign-in was closed before finishing.";
+    showMsg(text); selectedLabel = null; draw();
+  }
+};
+$("againBtn").onclick = () => { goToStep(0); draw(); };
+
+// ---------- live data ----------
+onSnapshot(doc(db, "lots", lotId), (s) => {
+  lot = s.exists() ? s.data() : {};
+  $("lotName").textContent = lot.name || "Smart Park";
+  $("lotLoc").textContent = lot.location ? `${lot.location} · tap any open bay to hold it.` : "Tap any open bay to hold it.";
+  const fromLot = Array.isArray(lot.floors) ? lot.floors : [];
+  const fromDocs = [...new Set(slotDocs.map(d => d.floor).filter(Boolean))];
+  floors = [...new Set([...fromLot, ...fromDocs])];
+  if (!floors.length) floors = ["Ground"];
+  if (!currentFloor || !floors.includes(currentFloor)) currentFloor = floors[0];
+  buildFloorTabs(); draw();
+});
+
+onSnapshot(collection(db, "lots", lotId, "slots"), (snap) => {
+  slotDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const fromDocs = [...new Set(slotDocs.map(d => d.floor).filter(Boolean))];
+  const merged = [...new Set([...floors, ...fromDocs])];
+  if (merged.length !== floors.length) { floors = merged; if (!currentFloor) currentFloor = floors[0]; buildFloorTabs(); }
+  $("syncBadge").textContent = "● Live"; $("syncBadge").classList.add("live");
+  draw();
+}, (err) => { $("syncBadge").textContent = "● Offline"; $("syncBadge").classList.remove("live"); showMsg(`Can't load bays: ${err.message}`); });
+</script>
+</body>
+</html>
